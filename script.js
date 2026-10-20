@@ -27,7 +27,8 @@
     top.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});}
   // Year
   var y=document.getElementById('year'); if(y)y.textContent=new Date().getFullYear();
-  // Contact form -> FormSubmit AJAX: delivers to agency Gmail + in-page success message
+  // Contact form -> Web3Forms API: delivers to agency Gmail + in-page success message
+  var WEB3FORMS_ACCESS_KEY = "a15480a8-78be-4cdd-be13-f9cc851a8a2a";
   var form=document.getElementById('contactForm');
   if(form){form.addEventListener('submit',function(ev){ev.preventDefault();
     var success=document.getElementById('formSuccess'), error=document.getElementById('formError');
@@ -35,26 +36,27 @@
     if(success)success.hidden=true; if(error)error.hidden=true;
     var d=new FormData(form);
     if(d.get('_honey'))return; // spam honeypot
-    if(btn){btn.disabled=true; btn.textContent='Sending…';}
-    fetch('https://formsubmit.co/ajax/alibabamarketing1@gmail.com',{
+    if(btn){btn.disabled=true; btn.textContent='Sending\u2026';}
+    fetch('https://api.web3forms.com/submit',{
       method:'POST',
       headers:{'Content-Type':'application/json','Accept':'application/json'},
       body:JSON.stringify({
-        name:d.get('name'), email:d.get('email'), _replyto:d.get('email'),
+        access_key: WEB3FORMS_ACCESS_KEY,
+        from_name:'Ali Baba Marketing Pro Website',
+        subject:'New Website Enquiry \u2014 '+d.get('service'),
+        name:d.get('name'), email:d.get('email'),
         service:d.get('service'), message:d.get('message'),
-        _subject:'New Website Enquiry — '+d.get('service'),
-        _template:'table', _captcha:'false', _honey:''
+        botcheck:''
       })
     }).then(function(r){return r.json().catch(function(){return{};}).then(function(j){return{ok:r.ok,j:j};});})
     .then(function(res){
-      if(res.ok && String(res.j.success)!=='false'){
+      if(res.ok && res.j && res.j.success===true){
         form.reset();
         if(success){success.hidden=false; success.scrollIntoView({behavior:'smooth',block:'center'});}
       } else { if(error){ var msg=document.getElementById('formErrorMsg');
-          if(msg && res.j && res.j.message && /activation/i.test(res.j.message)){
-            msg.textContent='This form is not activated yet. The site owner needs to click the "Activate Form" link emailed to alibabamarketing1@gmail.com — after activation, your message will be delivered here instantly.';
-          } error.hidden=false; } }
+          if(msg && res.j && res.j.message){ msg.textContent='Your message could not be sent ('+res.j.message+'). Please try again, or email us directly at alibabamarketing1@gmail.com.'; }
+          error.hidden=false; } }
     }).catch(function(){ if(error)error.hidden=false; })
-    .finally(function(){ if(btn){btn.disabled=false; btn.textContent='Send Message →';} });
+    .finally(function(){ if(btn){btn.disabled=false; btn.textContent='Send Message \u2192';} });
   });}
 })();
