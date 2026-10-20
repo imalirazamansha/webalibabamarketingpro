@@ -50,7 +50,10 @@
       if(res.ok && String(res.j.success)!=='false'){
         form.reset();
         if(success){success.hidden=false; success.scrollIntoView({behavior:'smooth',block:'center'});}
-      } else { if(error)error.hidden=false; }
+      } else { if(error){ var msg=document.getElementById('formErrorMsg');
+          if(msg && res.j && res.j.message && /activation/i.test(res.j.message)){
+            msg.textContent='This form is not activated yet. The site owner needs to click the "Activate Form" link emailed to alibabamarketing1@gmail.com — after activation, your message will be delivered here instantly.';
+          } error.hidden=false; } }
     }).catch(function(){ if(error)error.hidden=false; })
     .finally(function(){ if(btn){btn.disabled=false; btn.textContent='Send Message →';} });
   });}
