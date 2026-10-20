@@ -12,7 +12,7 @@ Published via GitHub Pages: https://imalirazamansha.github.io/webalibabamarketin
 - `industries.html` — 8 industry playbooks (fashion, beauty, jewelry, home, e-commerce/DTC, travel, food, local)
 - `portfolio.html` — Campaign systems & reporting approach
 - `blog.html` — 3 full guides (reel hooks, Meta ads for DTC, 30-day content calendar)
-- `contact.html` — Contact form (mailto), details, what-happens-next, FAQ
+- `contact.html` — Contact form (Web3Forms API — submissions delivered to Gmail, in-page success message), details, what-happens-next, FAQ
 - `privacy.html` — Privacy policy
 - Shared: `styles.css`, `script.js`
 
