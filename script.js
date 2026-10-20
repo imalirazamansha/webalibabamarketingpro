@@ -27,11 +27,31 @@
     top.addEventListener('click',function(){window.scrollTo({top:0,behavior:'smooth'});});}
   // Year
   var y=document.getElementById('year'); if(y)y.textContent=new Date().getFullYear();
-  // Contact form -> mailto compose
+  // Contact form -> FormSubmit AJAX: delivers to agency Gmail + in-page success message
   var form=document.getElementById('contactForm');
   if(form){form.addEventListener('submit',function(ev){ev.preventDefault();
+    var success=document.getElementById('formSuccess'), error=document.getElementById('formError');
+    var btn=document.getElementById('sendBtn');
+    if(success)success.hidden=true; if(error)error.hidden=true;
     var d=new FormData(form);
-    var subject=encodeURIComponent('New Project Enquiry — '+(d.get('service')||'Ali Baba Marketing Pro'));
-    var body=encodeURIComponent('Name: '+d.get('name')+'\nEmail: '+d.get('email')+'\nService: '+d.get('service')+'\n\n'+d.get('message'));
-    location.href='mailto:alibabamarketing1@gmail.com?subject='+subject+'&body='+body;});}
+    if(d.get('_honey'))return; // spam honeypot
+    if(btn){btn.disabled=true; btn.textContent='Sending…';}
+    fetch('https://formsubmit.co/ajax/alibabamarketing1@gmail.com',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body:JSON.stringify({
+        name:d.get('name'), email:d.get('email'), _replyto:d.get('email'),
+        service:d.get('service'), message:d.get('message'),
+        _subject:'New Website Enquiry — '+d.get('service'),
+        _template:'table', _captcha:'false', _honey:''
+      })
+    }).then(function(r){return r.json().catch(function(){return{};}).then(function(j){return{ok:r.ok,j:j};});})
+    .then(function(res){
+      if(res.ok && String(res.j.success)!=='false'){
+        form.reset();
+        if(success){success.hidden=false; success.scrollIntoView({behavior:'smooth',block:'center'});}
+      } else { if(error)error.hidden=false; }
+    }).catch(function(){ if(error)error.hidden=false; })
+    .finally(function(){ if(btn){btn.disabled=false; btn.textContent='Send Message →';} });
+  });}
 })();
