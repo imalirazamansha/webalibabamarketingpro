@@ -436,6 +436,33 @@ h1,h2,h3{line-height:1.15}
 .section-img{width:100%;height:320px;object-fit:cover;border-radius:18px;margin:18px 0;display:block}
 @media(max-width:640px){.card-img{height:160px}.section-img{height:220px}}
 
+/* VIDEO FIXES 2026-10-26: header single row, visible menu, small hero label, big stats, lime marquee, card-head, footer links */
+.site-header .nav{flex-wrap:nowrap !important;gap:10px}
+.logo{white-space:nowrap;font-size:17px}
+.logo-mark{width:34px;height:34px;flex:none}
+.btn-sm{white-space:nowrap;padding:10px 14px;font-size:13px;flex:none}
+.hero-label{display:inline-block;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:#A9BCD6;font-weight:800;margin-bottom:12px}
+.stats b{font-size:30px;line-height:1.1}
+.stats{display:flex;gap:22px;flex-wrap:wrap}
+.marquee{background:linear-gradient(90deg,#C6F24A,#8FE000) !important;color:#0B0F14 !important}
+.marquee-item{color:#0B0F14}
+.marquee-item img{width:28px;height:28px;border-radius:8px;object-fit:cover;flex:none}
+.card-head{display:flex;align-items:center;gap:12px}
+.card-head .icon{flex:none}
+.card-head h3{margin:0}
+.card-link{text-decoration:none;color:inherit;display:block}
+.card-link:hover{text-decoration:none}
+.site-footer a{color:#C6F24A;text-decoration:underline;text-underline-offset:3px}
+.site-footer ul li a{display:inline-block;padding:6px 0;font-size:15px}
+.float-cta{display:none !important}
+@media(max-width:920px){
+  .menu-btn{display:flex !important;align-items:center;justify-content:center;flex:none;width:42px;height:42px}
+  .site-header .wrap{padding:0 14px}
+  .stats b{font-size:26px}
+  .hero-label{font-size:11px}
+}
+@media(min-width:921px){.menu-btn{display:none !important}}
+
 </style>
 <script>
 // Ali Baba Marketing Pro V5 — theme + content store (staging prototype).
@@ -534,6 +561,40 @@ h1,h2,h3{line-height:1.15}
       });
       navLinks.querySelectorAll('a').forEach(function(a){ a.addEventListener('click', function(){ navLinks.classList.remove('open'); menuBtn.textContent='☰'; }); });
     }
+
+  // Count-up on scroll (stats + growth bars) - VIDEO FIX
+  (function(){
+    function animateCount(el){
+      var target=parseInt(el.getAttribute('data-count'),10)||0;
+      var suffix=el.getAttribute('data-suffix')||'';
+      var dur=1200, start=null;
+      function step(ts){
+        if(!start) start=ts;
+        var p=Math.min((ts-start)/dur,1);
+        var val=Math.round(target*(1-Math.pow(1-p,3)));
+        el.textContent=val+suffix;
+        if(p<1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+    var obs=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          var el=e.target;
+          if(el.hasAttribute('data-count') && !el.getAttribute('data-counted')){
+            el.setAttribute('data-counted','1'); animateCount(el);
+          }
+          if(el.hasAttribute('data-bar')){
+            var pct=parseInt(el.getAttribute('data-bar'),10)||0;
+            el.style.transition='width 1.2s ease'; el.style.width=pct+'%';
+          }
+          obs.unobserve(el);
+        }
+      });
+    },{threshold:0.3});
+    document.querySelectorAll('[data-count],[data-bar]').forEach(function(el){ obs.observe(el); });
+  })();
+
   // Site behaviour: reveal, FAQ, counters
   document.addEventListener("DOMContentLoaded", function(){
     applyTheme(getTheme());
@@ -612,4 +673,4 @@ h1,h2,h3{line-height:1.15}
 })();
 
 </script>
-</head><body><header class="site-header"><div class="wrap nav"><a class="logo" href="index.html"><span class="logo-mark">AB</span>Ali Baba <span class="grad">Marketing Pro</span></a><nav class="nav-links" id="navLinks"><a href="index.html">Home</a><a href="about.html">About</a><a href="services.html">Services</a><a href="industries.html">Industries</a><a href="portfolio.html">Portfolio</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></nav><a class="btn btn-primary btn-sm" href="contact.html">Book a Free Audit</a><button class="menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false">☰</button></div></header><main><section class="page-hero"><div class="wrap reveal"><span class="tag">Our Portfolio</span><h1>The Work, the Formats, <span class='grad'>the Systems</span></h1><p class="lead">We believe in showing our playbooks, not inflated screenshots. Below are the campaign systems we design and run for clients.</p><div class="crumbs"><a href="index.html">Home</a> › Portfolio</div></div></section><section class="section"><div class="wrap"><div class="grid grid-3"><article class="card reveal"><img class="card-img" src="https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=900&q=80&auto=format&fit=crop" alt="Marketing" loading="lazy"><span class="chip">Fashion & Content</span><h3>Fashion Reel System</h3><p>A repeatable short-form system for clothing brands: outfit reveals, detail close-ups, styling tips and festive campaigns, each built on a proven hook structure.</p></article><article class="card reveal"><img class="card-img" src="https://images.unsplash.com/photo-1561070791-2526d30994b5?w=900&q=80&auto=format&fit=crop" alt="Marketing" loading="lazy"><span class="chip">AI Content & Social</span><h3>AI Influencer Brand</h3><p>A fully AI-driven fashion influencer format: a consistent virtual presenter, a signature studio look and daily reel packages produced as one pipeline.</p></article><article class="card reveal"><img class="card-img" src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=900&q=80&auto=format&fit=crop" alt="Marketing" loading="lazy"><span class="chip">E-commerce & Ads</span><h3>DTC Launch Campaign</h3><p>A launch framework for online stores: teaser content, launch-day creative, offer stacking and retargeting — designed so ad spend lands on pages that convert.</p></article><article class="card reveal"><img class="card-img" src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=900&q=80&auto=format&fit=crop" alt="Marketing" loading="lazy"><span class="chip">Travel & Video</span><h3>Travel Booking Funnel</h3><p>Destination content paired with a clear voiceover and a WhatsApp booking call to action — the format Pakistani travellers actually respond to.</p></article><article class="card reveal"><img class="card-img" src="https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=900&q=80&auto=format&fit=crop" alt="Marketing" loading="lazy"><span class="chip">Beauty & Social</span><h3>Beauty Trust Content</h3><p>Routine-led content for skincare: problem-solution hooks, ingredient stories and review formats that build the trust beauty buyers need.</p></article><article class="card reveal"><img class="card-img" src="https://images.unsplash.com/photo-1561070791-2526d30994b5?w=900&q=80&auto=format&fit=crop" alt="Marketing" loading="lazy"><span class="chip">Branding & Design</span><h3>Brand Identity Kits</h3><p>Complete identity systems: logo suite, colour and type system, social templates and ad creative that keep every post recognisably yours.</p></article></div></div></section><section class="section alt"><div class="wrap"><div class="section-head reveal"><span class="tag">How We Report Results</span><h2>Numbers You Can Check, Not Just Admire</h2><p>Every engagement includes a monthly report: content published, reach quality, ad spend and return, leads and sales influenced — plus what we will change next month.</p></div></div></section><section class="section"><div class="wrap"><div class="cta reveal"><h2>Let's Build a Brand Customers Can't Ignore</h2><p>Tell us about your product and goals. We reply within 24 hours with honest advice and a clear plan.</p><div class="cta-actions"><a class="btn" style="background:#fff;color:var(--deep)" href="contact.html">Book a Free Audit</a><a class="btn btn-ghost" style="border-color:#fff;color:#fff" href="services.html">Explore Services</a></div></div></div></section></main><footer class="site-footer"><div class="wrap"><div class="footer-grid"><div><a class="logo" style="color:#fff" href="index.html"><span class="logo-mark">AB</span>Ali Baba Marketing Pro</a><p style="margin-top:14px">A growth-first agency helping brands turn attention into customers.</p><p>✉ alibabamarketing1@gmail.com<br>WhatsApp: 0316-4324778</p></div><div><h4>Pages</h4><ul><li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="services.html">Services</a></li><li><a href="blog.html">Blog</a></li></ul></div><div><h4>Services</h4><ul><li>Social Media</li><li>Performance Ads</li><li>Reels</li><li>Branding</li></ul></div><div><h4>Contact</h4><ul><li>Lahore, Pakistan</li><li>Serving worldwide</li><li>Mon–Sat, 9am–7pm PKT</li></ul></div></div><div class="copyright">© 2026 Ali Baba Marketing Pro — V5 staging preview, Black + Lime default. Live site untouched.</div></div><p style="text-align:center;margin-top:16px"><a href="shopnest-demo.html">ShopNest Demo Store</a> · <a href="shopnest.html">ShopNest Landing Page</a></p></footer><a class="float-cta" href="contact.html">Free Audit →</a></body></html>
+</head><body><header class="site-header"><div class="wrap nav"><a class="logo" href="index.html"><span class="logo-mark">AB</span>Ali Baba <span class="grad">Marketing Pro</span></a><nav class="nav-links" id="navLinks"><a href="index.html">Home</a><a href="about.html">About</a><a href="services.html">Services</a><a href="industries.html">Industries</a><a href="portfolio.html">Portfolio</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></nav><a class="btn btn-primary btn-sm" href="contact.html">Book a Free Audit</a><button class="menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false">☰</button></div></header><main><section class="page-hero"><div class="wrap reveal"><span class="tag">Our Portfolio</span><h1>The Work, the Formats, <span class='grad'>the Systems</span></h1><p class="lead">We believe in showing our playbooks, not inflated screenshots. Below are the campaign systems we design and run for clients.</p><div class="crumbs"><a href="index.html">Home</a> › Portfolio</div></div></section><section class="section"><div class="wrap"><div class="grid grid-3"><article class="card reveal"><img class="card-img" src="https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=900&q=80&auto=format&fit=crop" alt="Marketing" loading="lazy"><span class="chip">Fashion & Content</span><h3>Fashion Reel System</h3><p>A repeatable short-form system for clothing brands: outfit reveals, detail close-ups, styling tips and festive campaigns, each built on a proven hook structure.</p></article><article class="card reveal"><img class="card-img" src="https://images.unsplash.com/photo-1561070791-2526d30994b5?w=900&q=80&auto=format&fit=crop" alt="Marketing" loading="lazy"><span class="chip">AI Content & Social</span><h3>AI Influencer Brand</h3><p>A fully AI-driven fashion influencer format: a consistent virtual presenter, a signature studio look and daily reel packages produced as one pipeline.</p></article><article class="card reveal"><img class="card-img" src="https://images.unsplash.com/photo-1552664730-d307ca884978?w=900&q=80&auto=format&fit=crop" alt="Marketing" loading="lazy"><span class="chip">E-commerce & Ads</span><h3>DTC Launch Campaign</h3><p>A launch framework for online stores: teaser content, launch-day creative, offer stacking and retargeting — designed so ad spend lands on pages that convert.</p></article><article class="card reveal"><img class="card-img" src="https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=900&q=80&auto=format&fit=crop" alt="Marketing" loading="lazy"><span class="chip">Travel & Video</span><h3>Travel Booking Funnel</h3><p>Destination content paired with a clear voiceover and a WhatsApp booking call to action — the format Pakistani travellers actually respond to.</p></article><article class="card reveal"><img class="card-img" src="https://images.unsplash.com/photo-1556761175-b413da4baf72?w=900&q=80&auto=format&fit=crop" alt="Marketing" loading="lazy"><span class="chip">Beauty & Social</span><h3>Beauty Trust Content</h3><p>Routine-led content for skincare: problem-solution hooks, ingredient stories and review formats that build the trust beauty buyers need.</p></article><article class="card reveal"><img class="card-img" src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=900&q=80&auto=format&fit=crop" alt="Marketing" loading="lazy"><span class="chip">Branding & Design</span><h3>Brand Identity Kits</h3><p>Complete identity systems: logo suite, colour and type system, social templates and ad creative that keep every post recognisably yours.</p></article></div></div></section><section class="section alt"><div class="wrap"><div class="section-head reveal"><span class="tag">How We Report Results</span><h2>Numbers You Can Check, Not Just Admire</h2><p>Every engagement includes a monthly report: content published, reach quality, ad spend and return, leads and sales influenced — plus what we will change next month.</p></div></div></section><section class="section"><div class="wrap"><div class="cta reveal"><h2>Let's Build a Brand Customers Can't Ignore</h2><p>Tell us about your product and goals. We reply within 24 hours with honest advice and a clear plan.</p><div class="cta-actions"><a class="btn" style="background:#fff;color:var(--deep)" href="contact.html">Book a Free Audit</a><a class="btn btn-ghost" style="border-color:#fff;color:#fff" href="services.html">Explore Services</a></div></div></div></section></main><footer class="site-footer"><div class="wrap"><div class="footer-grid"><div><a class="logo" style="color:#fff" href="index.html"><span class="logo-mark">AB</span>Ali Baba Marketing Pro</a><p style="margin-top:14px">A growth-first agency helping brands turn attention into customers.</p><p>✉ alibabamarketing1@gmail.com<br>WhatsApp: 0316-4324778</p></div><div><h4>Pages</h4><ul><li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="services.html">Services</a></li><li><a href="blog.html">Blog</a></li></ul></div><div><h4>Services</h4><ul><li>Social Media</li><li>Performance Ads</li><li>Reels</li><li>Branding</li></ul></div><div><h4>Contact</h4><ul><li>Lahore, Pakistan</li><li>Serving worldwide</li><li>Mon–Sat, 9am–7pm PKT</li></ul></div></div><div class="copyright">© 2026 Ali Baba Marketing Pro. All rights reserved.</div></div><p style="text-align:center;margin-top:16px"><a href="shopnest-demo.html">ShopNest Demo Store</a> · <a href="shopnest.html">ShopNest Landing Page</a></p></footer></body></html>

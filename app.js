@@ -94,6 +94,40 @@
       });
       navLinks.querySelectorAll('a').forEach(function(a){ a.addEventListener('click', function(){ navLinks.classList.remove('open'); menuBtn.textContent='☰'; }); });
     }
+
+  // Count-up on scroll (stats + growth bars) - VIDEO FIX
+  (function(){
+    function animateCount(el){
+      var target=parseInt(el.getAttribute('data-count'),10)||0;
+      var suffix=el.getAttribute('data-suffix')||'';
+      var dur=1200, start=null;
+      function step(ts){
+        if(!start) start=ts;
+        var p=Math.min((ts-start)/dur,1);
+        var val=Math.round(target*(1-Math.pow(1-p,3)));
+        el.textContent=val+suffix;
+        if(p<1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+    var obs=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){
+        if(e.isIntersecting){
+          var el=e.target;
+          if(el.hasAttribute('data-count') && !el.getAttribute('data-counted')){
+            el.setAttribute('data-counted','1'); animateCount(el);
+          }
+          if(el.hasAttribute('data-bar')){
+            var pct=parseInt(el.getAttribute('data-bar'),10)||0;
+            el.style.transition='width 1.2s ease'; el.style.width=pct+'%';
+          }
+          obs.unobserve(el);
+        }
+      });
+    },{threshold:0.3});
+    document.querySelectorAll('[data-count],[data-bar]').forEach(function(el){ obs.observe(el); });
+  })();
+
   // Site behaviour: reveal, FAQ, counters
   document.addEventListener("DOMContentLoaded", function(){
     applyTheme(getTheme());

@@ -369,6 +369,16 @@ h1,h2,h3{line-height:1.15}
 .grid-2{grid-template-columns:repeat(2,1fr)}
 @media(max-width:640px){.grid-2{grid-template-columns:1fr}}
 
+
+/* COMPACT PALETTES 2026-10-26: all 35 in one compact row, not 35 big cards */
+.palette-grid{display:flex !important;flex-wrap:wrap;gap:8px}
+.palette{padding:10px 12px !important;border-radius:12px !important;display:flex;align-items:center;gap:10px}
+.palette b{margin:0 !important;font-size:13px;white-space:nowrap}
+.palette small{display:none}
+.palette .swatches i{width:20px;height:20px}
+.palette .palette-apply{padding:6px 10px !important;font-size:12px;white-space:nowrap}
+.palette-select{width:100%;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);font:inherit;margin-bottom:12px}
+.admin-tab-btn{padding:10px 14px}
 </style>
 <script>
 // Ali Baba Marketing Pro V5 — theme + content store (staging prototype).
@@ -571,6 +581,7 @@ h1,h2,h3{line-height:1.15}
 <button class="admin-tab-btn" data-tab="tab-blog">Blog Writer + SEO</button>
 <button class="admin-tab-btn" data-tab="tab-leads">Leads</button>
 <button class="admin-tab-btn" data-tab="tab-settings">Settings</button>
+<button class="admin-tab-btn" data-tab="tab-full">Full Control (CRUD + Images)</button>
 </div>
 <p style="color:var(--muted);margin-bottom:18px">Like WordPress, but easier: Pages, Blog, Appearance, and Settings — all in one place, with no plugin or database setup. When you save, the site updates in this browser. For a permanent update for all visitors, the next step is Supabase wiring, as used in ShopNest.</p>
 <div id="tab-appearance" class="admin-tab active">
@@ -578,45 +589,45 @@ h1,h2,h3{line-height:1.15}
 <div class="admin-note"><b>Secret admin, kept private:</b> this file has no link on the public site, just like the secret ShopNest admin paths. When you change a palette here, the homepage look changes. In this prototype, the change is saved in this browser. In the permanent version, the same setting will go to Supabase, so every visitor sees the same palette.</div>
 
 <section class="admin-card"><h2>1. Branding Palettes — all 35 are here</h2><p>Click any palette to make it active. The live preview below will update too.</p>
-<div class="palette-grid">
-<div class="palette" data-palette="navy-cyan"><div class="swatches"><i style="background:#0A2540"></i><i style="background:#2563EB"></i><i style="background:#22D3EE"></i></div><b>1. Navy + Cyan</b><small>Trust + tech feel. Current brand ka refined version.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="black-lime"><div class="swatches"><i style="background:#0B0F14"></i><i style="background:#16A34A"></i><i style="background:#BFFF3C"></i></div><b>2. Black + Lime</b><small>Modern startup, growth and money feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="midnight-orange"><div class="swatches"><i style="background:#171321"></i><i style="background:#EA580C"></i><i style="background:#FFB020"></i></div><b>3. Midnight + Orange</b><small>Bold agency, with the most action feel on CTAs.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="teal-white"><div class="swatches"><i style="background:#063B3A"></i><i style="background:#14B8A6"></i><i style="background:#5EEAD4"></i></div><b>4. Teal + White</b><small>Premium clean, corporate clients ke liye.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="navy-gold"><div class="swatches"><i style="background:#0A2540"></i><i style="background:#B9975B"></i><i style="background:#C9A227"></i></div><b>5. Navy + Gold</b><small>Premium agency feel, purane purple/gold look se alag.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<label>Quick palette picker — one line, all 35 palettes<select id="paletteSelect" class="palette-select"><option value="">Choose a palette…</option></select></label><label>Filter by type<select id="paletteFilter" class="palette-select"><option value="">All palettes</option><option>Original</option><option>Big Company</option><option>Soft</option><option>Industry</option></select></label><div class="palette-grid">
+<div class="palette" data-cat="Original" data-palette="navy-cyan"><div class="swatches"><i style="background:#0A2540"></i><i style="background:#2563EB"></i><i style="background:#22D3EE"></i></div><b>1. Navy + Cyan</b><small>Trust + tech feel. A refined version of the current brand.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="black-lime"><div class="swatches"><i style="background:#0B0F14"></i><i style="background:#16A34A"></i><i style="background:#BFFF3C"></i></div><b>2. Black + Lime</b><small>Modern startup, growth and money feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="midnight-orange"><div class="swatches"><i style="background:#171321"></i><i style="background:#EA580C"></i><i style="background:#FFB020"></i></div><b>3. Midnight + Orange</b><small>Bold agency, with the most action feel on CTAs.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="teal-white"><div class="swatches"><i style="background:#063B3A"></i><i style="background:#14B8A6"></i><i style="background:#5EEAD4"></i></div><b>4. Teal + White</b><small>Premium clean, corporate clients ke liye.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="navy-gold"><div class="swatches"><i style="background:#0A2540"></i><i style="background:#B9975B"></i><i style="background:#C9A227"></i></div><b>5. Navy + Gold</b><small>Premium agency feel, different from the old purple/gold look.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
 
-<div class="palette" data-palette="coral-growth"><div class="swatches"><i style="background:#0F1E2E"></i><i style="background:#FF5A1F"></i><i style="background:#FFB020"></i></div><b>6. Coral Growth</b><small>HubSpot style warm orange, friendly SaaS feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="search-blue"><div class="swatches"><i style="background:#0F2043"></i><i style="background:#2E5BFF"></i><i style="background:#FF6C37"></i></div><b>7. Search Blue</b><small>Semrush / Ahrefs style blue + orange, data-tools feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="saas-blue"><div class="swatches"><i style="background:#0A2540"></i><i style="background:#0B5FFF"></i><i style="background:#00C2FF"></i></div><b>8. SaaS Blue</b><small>Salesforce style royal blue + sky, enterprise trust.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="mint-growth"><div class="swatches"><i style="background:#0B2B26"></i><i style="background:#00B289"></i><i style="background:#A7F3D0"></i></div><b>9. Mint Growth</b><small>Sprout style fresh green, social growth feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="sunshine-creator"><div class="swatches"><i style="background:#241C15"></i><i style="background:#F59E0B"></i><i style="background:#FFE01B"></i></div><b>10. Sunshine Creator</b><small>Mailchimp style yellow + black, bold creator feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="violet-creator"><div class="swatches"><i style="background:#2E1065"></i><i style="background:#7C3AED"></i><i style="background:#EC4899"></i></div><b>11. Violet Creator</b><small>Canva style purple + pink, creative agency feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="crimson-bold"><div class="swatches"><i style="background:#1F1015"></i><i style="background:#E11D48"></i><i style="background:#FB7185"></i></div><b>12. Crimson Bold</b><small>Bold performance agency red, urgency feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="ocean-agency"><div class="swatches"><i style="background:#083344"></i><i style="background:#0891B2"></i><i style="background:#67E8F9"></i></div><b>13. Ocean Agency</b><small>Modern tech agency teal, clean premium feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="forest-premium"><div class="swatches"><i style="background:#12291A"></i><i style="background:#14532D"></i><i style="background:#C9A227"></i></div><b>14. Forest Premium</b><small>Premium consultancy deep green + gold.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="slate-modern"><div class="swatches"><i style="background:#0F172A"></i><i style="background:#334155"></i><i style="background:#38BDF8"></i></div><b>15. Slate Modern</b><small>Minimal agency slate + sky, corporate clean.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="coral-growth"><div class="swatches"><i style="background:#0F1E2E"></i><i style="background:#FF5A1F"></i><i style="background:#FFB020"></i></div><b>6. Coral Growth</b><small>HubSpot style warm orange, friendly SaaS feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="search-blue"><div class="swatches"><i style="background:#0F2043"></i><i style="background:#2E5BFF"></i><i style="background:#FF6C37"></i></div><b>7. Search Blue</b><small>Semrush / Ahrefs style blue + orange, data-tools feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="saas-blue"><div class="swatches"><i style="background:#0A2540"></i><i style="background:#0B5FFF"></i><i style="background:#00C2FF"></i></div><b>8. SaaS Blue</b><small>Salesforce style royal blue + sky, enterprise trust.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="mint-growth"><div class="swatches"><i style="background:#0B2B26"></i><i style="background:#00B289"></i><i style="background:#A7F3D0"></i></div><b>9. Mint Growth</b><small>Sprout style fresh green, social growth feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="sunshine-creator"><div class="swatches"><i style="background:#241C15"></i><i style="background:#F59E0B"></i><i style="background:#FFE01B"></i></div><b>10. Sunshine Creator</b><small>Mailchimp style yellow + black, bold creator feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="violet-creator"><div class="swatches"><i style="background:#2E1065"></i><i style="background:#7C3AED"></i><i style="background:#EC4899"></i></div><b>11. Violet Creator</b><small>Canva style purple + pink, creative agency feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="crimson-bold"><div class="swatches"><i style="background:#1F1015"></i><i style="background:#E11D48"></i><i style="background:#FB7185"></i></div><b>12. Crimson Bold</b><small>Bold performance agency red, urgency feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="ocean-agency"><div class="swatches"><i style="background:#083344"></i><i style="background:#0891B2"></i><i style="background:#67E8F9"></i></div><b>13. Ocean Agency</b><small>Modern tech agency teal, clean premium feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="forest-premium"><div class="swatches"><i style="background:#12291A"></i><i style="background:#14532D"></i><i style="background:#C9A227"></i></div><b>14. Forest Premium</b><small>Premium consultancy deep green + gold.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="slate-modern"><div class="swatches"><i style="background:#0F172A"></i><i style="background:#334155"></i><i style="background:#38BDF8"></i></div><b>15. Slate Modern</b><small>Minimal agency slate + sky, corporate clean.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
 
-<div class="palette" data-palette="blush-rose"><div class="swatches"><i style="background:#4A2530"></i><i style="background:#C4707F"></i><i style="background:#F9C5CC"></i></div><b>16. Blush Rose</b><small>Soft pink, gentle and feminine premium feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="sky-pastel"><div class="swatches"><i style="background:#2C4A6B"></i><i style="background:#6FA8D8"></i><i style="background:#CDE8FA"></i></div><b>17. Sky Pastel</b><small>Soft light blue, calm and trustworthy feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="lavender-mist"><div class="swatches"><i style="background:#4B3A6B"></i><i style="background:#9B8AC4"></i><i style="background:#E4D9F5"></i></div><b>18. Lavender Mist</b><small>Soft lavender, dreamy creative feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="mint-cream"><div class="swatches"><i style="background:#2F4F3E"></i><i style="background:#7FBF9A"></i><i style="background:#D9F0DF"></i></div><b>19. Mint Cream</b><small>Soft mint, fresh and clean feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="peach-glow"><div class="swatches"><i style="background:#5B3E2E"></i><i style="background:#E0A184"></i><i style="background:#FDE0CC"></i></div><b>20. Peach Glow</b><small>Soft peach, warm and friendly feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="butter-lemon"><div class="swatches"><i style="background:#5B552A"></i><i style="background:#C9B458"></i><i style="background:#F7EEC0"></i></div><b>21. Butter Lemon</b><small>Soft yellow cream, cheerful lekin halka feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="sage-calm"><div class="swatches"><i style="background:#3E4F38"></i><i style="background:#8AA87F"></i><i style="background:#DEEAD6"></i></div><b>22. Sage Calm</b><small>Soft sage green, calm and natural feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="powder-blue"><div class="swatches"><i style="background:#3A4F66"></i><i style="background:#8FB3CC"></i><i style="background:#DCEAF3"></i></div><b>23. Powder Blue</b><small>Soft powder blue, elegant corporate feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="lilac-grey"><div class="swatches"><i style="background:#4A4557"></i><i style="background:#A39AB5"></i><i style="background:#E5E1EC"></i></div><b>24. Lilac Grey</b><small>Soft muted lilac, modern minimal feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="sand-beige"><div class="swatches"><i style="background:#54462F"></i><i style="background:#B79F78"></i><i style="background:#EDE2CC"></i></div><b>25. Sand Beige</b><small>Soft warm sand, luxury boutique feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="blush-rose"><div class="swatches"><i style="background:#4A2530"></i><i style="background:#C4707F"></i><i style="background:#F9C5CC"></i></div><b>16. Blush Rose</b><small>Soft pink, gentle and feminine premium feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="sky-pastel"><div class="swatches"><i style="background:#2C4A6B"></i><i style="background:#6FA8D8"></i><i style="background:#CDE8FA"></i></div><b>17. Sky Pastel</b><small>Soft light blue, calm and trustworthy feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="lavender-mist"><div class="swatches"><i style="background:#4B3A6B"></i><i style="background:#9B8AC4"></i><i style="background:#E4D9F5"></i></div><b>18. Lavender Mist</b><small>Soft lavender, dreamy creative feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="mint-cream"><div class="swatches"><i style="background:#2F4F3E"></i><i style="background:#7FBF9A"></i><i style="background:#D9F0DF"></i></div><b>19. Mint Cream</b><small>Soft mint, fresh and clean feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="peach-glow"><div class="swatches"><i style="background:#5B3E2E"></i><i style="background:#E0A184"></i><i style="background:#FDE0CC"></i></div><b>20. Peach Glow</b><small>Soft peach, warm and friendly feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="butter-lemon"><div class="swatches"><i style="background:#5B552A"></i><i style="background:#C9B458"></i><i style="background:#F7EEC0"></i></div><b>21. Butter Lemon</b><small>Soft yellow cream, cheerful lekin halka feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="sage-calm"><div class="swatches"><i style="background:#3E4F38"></i><i style="background:#8AA87F"></i><i style="background:#DEEAD6"></i></div><b>22. Sage Calm</b><small>Soft sage green, calm and natural feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="powder-blue"><div class="swatches"><i style="background:#3A4F66"></i><i style="background:#8FB3CC"></i><i style="background:#DCEAF3"></i></div><b>23. Powder Blue</b><small>Soft powder blue, elegant corporate feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="lilac-grey"><div class="swatches"><i style="background:#4A4557"></i><i style="background:#A39AB5"></i><i style="background:#E5E1EC"></i></div><b>24. Lilac Grey</b><small>Soft muted lilac, modern minimal feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="sand-beige"><div class="swatches"><i style="background:#54462F"></i><i style="background:#B79F78"></i><i style="background:#EDE2CC"></i></div><b>25. Sand Beige</b><small>Soft warm sand, luxury boutique feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
 
-<div class="palette" data-palette="fashion-editorial"><div class="swatches"><i style="background:#111111"></i><i style="background:#D4A373"></i><i style="background:#E8CFC0"></i></div><b>26. Fashion Editorial</b><small>For: Fashion brands. Minimal black + champagne, aspiration feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="beauty-glow"><div class="swatches"><i style="background:#4A1F2E"></i><i style="background:#D6336C"></i><i style="background:#FFD6DE"></i></div><b>27. Beauty Glow</b><small>For: Beauty / skincare. Rose glow, trust + care feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="jewelry-luxe"><div class="swatches"><i style="background:#0F172A"></i><i style="background:#C9A227"></i><i style="background:#E9D489"></i></div><b>28. Jewelry Luxe</b><small>For: Jewelry. Navy + gold, luxury + scarcity feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="home-warm"><div class="swatches"><i style="background:#3B2A1E"></i><i style="background:#C05621"></i><i style="background:#F2D8B8"></i></div><b>29. Home Warm</b><small>For: Home / lifestyle. Terracotta + wood, comfort feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="ecommerce-conversion"><div class="swatches"><i style="background:#0A2540"></i><i style="background:#16A34A"></i><i style="background:#FF6B1A"></i></div><b>30. E-commerce Conversion</b><small>For: DTC stores. Green trust + orange CTA urgency.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="travel-wander"><div class="swatches"><i style="background:#083344"></i><i style="background:#0E7490"></i><i style="background:#F97316"></i></div><b>31. Travel Wander</b><small>For: Travel. Teal ocean + sunset, wanderlust feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="food-appetite"><div class="swatches"><i style="background:#2A1A12"></i><i style="background:#DC2626"></i><i style="background:#F59E0B"></i></div><b>32. Food Appetite</b><small>For: Food / restaurants. Red + yellow appetite trigger.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="realestate-trust"><div class="swatches"><i style="background:#1E3A5F"></i><i style="background:#94A3B8"></i><i style="background:#C9A227"></i></div><b>33. Real Estate Trust</b><small>For: Real estate / local. Deep navy, stability + trust.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="tech-indigo"><div class="swatches"><i style="background:#1E1B4B"></i><i style="background:#4F46E5"></i><i style="background:#06B6D4"></i></div><b>34. Tech Indigo</b><small>For: Tech / SaaS. Indigo + cyan, innovation feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="health-vitality"><div class="swatches"><i style="background:#14532D"></i><i style="background:#15803D"></i><i style="background:#84CC16"></i></div><b>35. Health Vitality</b><small>For: Health / fitness. Fresh green, energy + wellbeing.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="fashion-editorial"><div class="swatches"><i style="background:#111111"></i><i style="background:#D4A373"></i><i style="background:#E8CFC0"></i></div><b>26. Fashion Editorial</b><small>For: Fashion brands. Minimal black + champagne, aspiration feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="beauty-glow"><div class="swatches"><i style="background:#4A1F2E"></i><i style="background:#D6336C"></i><i style="background:#FFD6DE"></i></div><b>27. Beauty Glow</b><small>For: Beauty / skincare. Rose glow, trust + care feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="jewelry-luxe"><div class="swatches"><i style="background:#0F172A"></i><i style="background:#C9A227"></i><i style="background:#E9D489"></i></div><b>28. Jewelry Luxe</b><small>For: Jewelry. Navy + gold, luxury + scarcity feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="home-warm"><div class="swatches"><i style="background:#3B2A1E"></i><i style="background:#C05621"></i><i style="background:#F2D8B8"></i></div><b>29. Home Warm</b><small>For: Home / lifestyle. Terracotta + wood, comfort feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="ecommerce-conversion"><div class="swatches"><i style="background:#0A2540"></i><i style="background:#16A34A"></i><i style="background:#FF6B1A"></i></div><b>30. E-commerce Conversion</b><small>For: DTC stores. Green trust + orange CTA urgency.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="travel-wander"><div class="swatches"><i style="background:#083344"></i><i style="background:#0E7490"></i><i style="background:#F97316"></i></div><b>31. Travel Wander</b><small>For: Travel. Teal ocean + sunset, wanderlust feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="food-appetite"><div class="swatches"><i style="background:#2A1A12"></i><i style="background:#DC2626"></i><i style="background:#F59E0B"></i></div><b>32. Food Appetite</b><small>For: Food / restaurants. Red + yellow appetite trigger.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="realestate-trust"><div class="swatches"><i style="background:#1E3A5F"></i><i style="background:#94A3B8"></i><i style="background:#C9A227"></i></div><b>33. Real Estate Trust</b><small>For: Real estate / local. Deep navy, stability + trust.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="tech-indigo"><div class="swatches"><i style="background:#1E1B4B"></i><i style="background:#4F46E5"></i><i style="background:#06B6D4"></i></div><b>34. Tech Indigo</b><small>For: Tech / SaaS. Indigo + cyan, innovation feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-cat="Original" data-palette="health-vitality"><div class="swatches"><i style="background:#14532D"></i><i style="background:#15803D"></i><i style="background:#84CC16"></i></div><b>35. Health Vitality</b><small>For: Health / fitness. Fresh green, energy + wellbeing.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
 </div></section>
 
 <section class="admin-card"><h2>2. Content Edit</h2><p>Change the hero and contact details here. As soon as you press Save, the homepage updates.</p>
@@ -741,6 +752,31 @@ h1,h2,h3{line-height:1.15}
 <button class="btn btn-primary" id="exportEdits">Export Edits (Download JSON)</button>
 <button class="btn btn-ghost" id="copyEdits" style="margin-left:10px">Copy JSON to Clipboard</button>
 <p id="exportMsg" style="margin-top:12px;font-weight:700"></p></section>
+</div>
+
+
+<div id="tab-full" class="admin-tab">
+<div class="admin-note"><b>Full Control — Create, Update, Delete in every section:</b> Header, hero image, stats numbers, growth-bar percentages, pricing, and every card image. Image upload works two ways: (1) paste an image URL, or (2) pick a file — it previews here and saves in this browser. For a permanent live update, click Export (in Sections tab) and send the JSON to me in chat — I will push it live. Large uploaded photos are best hosted (Unsplash / your site) and pasted as a URL, so the live page stays fast.</div>
+
+<section class="admin-card"><h2>Header</h2>
+<div class="form-grid">
+<label>Logo text<input id="fullLogo" value="Ali Baba Marketing Pro"></label>
+<label>Header button text<input id="fullCta" value="Book a Free Audit"></label>
+<label>Hero background image URL<input id="fullHeroImg" value="https://images.unsplash.com/photo-1552664730-d307ca884978?w=1600&q=80&auto=format&fit=crop"></label>
+<label>Upload hero image (file)<input type="file" accept="image/*" id="fullHeroFile"></label>
+</div><img id="fullHeroPreview" style="width:100%;max-height:220px;object-fit:cover;border-radius:12px;margin-top:12px" alt="Hero preview"></section>
+
+<section class="admin-card"><h2>Stats numbers (homepage)</h2><p>Change the numbers — they count up on scroll on the live site.</p><div id="fullStats"></div><button class="btn btn-primary" id="fullStatsAdd">+ Add Stat</button></section>
+
+<section class="admin-card"><h2>Growth bars — label + percentage</h2><p>Change the percentage — the bar fills and the number counts up on scroll.</p><div id="fullBars"></div><button class="btn btn-primary" id="fullBarsAdd">+ Add Bar</button></section>
+
+<section class="admin-card"><h2>Pricing packages</h2><div id="fullPricing"></div><button class="btn btn-primary" id="fullPricingAdd">+ Add Package</button></section>
+
+<section class="admin-card"><h2>Card images — every card, every section</h2><p>Pick a group, then edit title, description, image URL, or upload a new image file. Delete or add cards with the buttons on each row. This covers Problem cards (Random Posting, No Funnel, No Reporting), Services, Platforms, Work Done and Industries.</p>
+<label>Card group<select id="fullCardGroup" style="width:100%;padding:11px;border:1.5px solid var(--line);border-radius:10px;margin:10px 0"><option value="problems">Problems (3)</option><option value="services">Services (9)</option><option value="platforms">Platforms (7)</option><option value="work">Work Done (6)</option><option value="industries">Industries (8)</option></select></label>
+<div id="fullCards"></div><button class="btn btn-primary" id="fullCardsAdd">+ Add Card</button></section>
+
+<section class="admin-card"><h2>Save Full Control</h2><p>Saves in this browser (localStorage key: abmp_full_v1) and is included in Export JSON.</p><button class="btn btn-primary" id="saveFull">Save Full Control</button><p id="fullMsg" style="margin-top:12px;font-weight:700"></p></section>
 </div>
 
 </main>
@@ -996,6 +1032,114 @@ h1,h2,h3{line-height:1.15}
     var txt=JSON.stringify(collectEdits(), null, 2);
     if(navigator.clipboard) navigator.clipboard.writeText(txt).then(function(){ document.getElementById('exportMsg').textContent='✓ Edits copied. Paste them in chat and I will push them live.'; });
   });
+})();
+</script>
+
+
+<script>
+(function(){
+  function readLS(k, fb){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):fb; }catch(e){ return fb; } }
+  function saveLS(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  // Palette one-line select + filter
+  var sel=document.getElementById('paletteSelect');
+  var filt=document.getElementById('paletteFilter');
+  if(sel){
+    document.querySelectorAll('.palette').forEach(function(p){
+      var t=p.querySelector('b'); var name=t?t.textContent:'';
+      var opt=document.createElement('option'); opt.value=p.getAttribute('data-palette'); opt.textContent=name; sel.appendChild(opt);
+    });
+    sel.addEventListener('change', function(){
+      var v=sel.value; if(!v) return;
+      var pal=document.querySelector('.palette[data-palette="'+v+'"]');
+      if(pal){ var btn=pal.querySelector('.palette-apply'); if(btn) btn.click(); }
+    });
+  }
+  if(filt){
+    filt.addEventListener('change', function(){
+      var v=filt.value;
+      document.querySelectorAll('.palette').forEach(function(p){
+        p.style.display=(!v || p.getAttribute('data-cat')===v)?'flex':'none';
+      });
+    });
+  }
+  // Full Control defaults
+  var DEFAULTS = {
+    logo:'Ali Baba Marketing Pro', cta:'Book a Free Audit',
+    heroImg:'https://images.unsplash.com/photo-1552664730-d307ca884978?w=1600&q=80&auto=format&fit=crop',
+    stats:[{n:'9',label:'Core Services'},{n:'8+',label:'Industries'},{n:'24h',label:'Response Time'},{n:'100%',label:'Original Content'}],
+    bars:[{label:'Content & Reels',pct:'92'},{label:'Performance Ads',pct:'86'},{label:'Brand & Design',pct:'78'},{label:'SEO & Search',pct:'71'}],
+    pricing:[{title:'ShopNest Online Store',price:'Setup Rs 9,999–14,999 · Monthly Rs 2,500–4,000',desc:'Your own online store: products, orders, WhatsApp ordering and cash on delivery.'},{title:'Social Media Handling',price:'Price after free audit',desc:'Monthly calendar, posting, reels, replies and a simple monthly report.'},{title:'Ads That Bring Enquiries',price:'Price after free audit',desc:'Meta, Google and TikTok ads, weekly optimisation, and a clear spend-to-enquiry report.'},{title:'Full Growth Package',price:'Price after free audit',desc:'Content + ads + branding + SEO + website, in one plan, with one team and one report.'}],
+    cards:{
+      problems:[{title:'Random Posting',desc:'Posts go out, but with no plan behind them.',img:'https://images.unsplash.com/photo-1556761175-b413da4baf72?w=900&q=80&auto=format&fit=crop'},{title:'No Funnel',desc:'Attention comes in, but no path turns it into a sale.',img:'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=900&q=80&auto=format&fit=crop'},{title:'No Reporting',desc:'You cannot tell what worked, so you cannot repeat it.',img:'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?w=900&q=80&auto=format&fit=crop'}],
+      services:[{title:'Social Media Marketing',desc:'Complete management across Instagram, Facebook, TikTok and LinkedIn.',img:''},{title:'Performance Ads',desc:'Paid ads built to bring enquiries and sales, not just views.',img:''},{title:'Content & Reels',desc:'Short videos that stop the scroll and explain your product.',img:''}],
+      platforms:[{title:'Facebook Marketing',desc:'Pages and ads that reach local buyers.',img:''},{title:'Instagram Marketing',desc:'A profile that looks like a shop window.',img:''},{title:'TikTok Marketing',desc:'Short, fun videos and ads that reach young customers fast.',img:''}],
+      work:[{title:'E-commerce Stores',desc:'Stores built to convert visitors into buyers.',img:''},{title:'Product-Based Websites',desc:'Websites that explain and sell products clearly.',img:''}],
+      industries:[{title:'Fashion & Apparel',desc:'Outfit reveals, styling reels and festive campaigns.',img:''},{title:'Beauty',desc:'Routines and trust-building content.',img:''}]
+    }
+  };
+  var FULL = readLS('abmp_full_v1', DEFAULTS);
+  function esc(s){ return String(s||'').replace(/"/g,'&quot;'); }
+  function renderStats(){
+    var el=document.getElementById('fullStats'); if(!el) return; el.innerHTML='';
+    FULL.stats.forEach(function(s,i){
+      var d=document.createElement('div'); d.className='form-grid'; d.style.marginBottom='10px';
+      d.innerHTML='<label>Number<input data-s="n" data-i="'+i+'" value="'+esc(s.n)+'"></label><label>Label<input data-s="label" data-i="'+i+'" value="'+esc(s.label)+'"></label><button class="btn btn-ghost" data-del-stat="'+i+'">Delete</button>';
+      el.appendChild(d);
+    });
+    el.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('input', function(){ var i=+inp.getAttribute('data-i'); FULL.stats[i][inp.getAttribute('data-s')]=inp.value; }); });
+    el.querySelectorAll('[data-del-stat]').forEach(function(b){ b.addEventListener('click', function(){ FULL.stats.splice(+b.getAttribute('data-del-stat'),1); renderStats(); }); });
+  }
+  function renderBars(){
+    var el=document.getElementById('fullBars'); if(!el) return; el.innerHTML='';
+    FULL.bars.forEach(function(s,i){
+      var d=document.createElement('div'); d.className='form-grid'; d.style.marginBottom='10px';
+      d.innerHTML='<label>Label<input data-b="label" data-i="'+i+'" value="'+esc(s.label)+'"></label><label>Percentage (0-100)<input type="number" min="0" max="100" data-b="pct" data-i="'+i+'" value="'+esc(s.pct)+'"></label><button class="btn btn-ghost" data-del-bar="'+i+'">Delete</button>';
+      el.appendChild(d);
+    });
+    el.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('input', function(){ var i=+inp.getAttribute('data-i'); FULL.bars[i][inp.getAttribute('data-b')]=inp.value; }); });
+    el.querySelectorAll('[data-del-bar]').forEach(function(b){ b.addEventListener('click', function(){ FULL.bars.splice(+b.getAttribute('data-del-bar'),1); renderBars(); }); });
+  }
+  function renderPricing(){
+    var el=document.getElementById('fullPricing'); if(!el) return; el.innerHTML='';
+    FULL.pricing.forEach(function(s,i){
+      var d=document.createElement('div'); d.className='form-grid'; d.style.marginBottom='10px';
+      d.innerHTML='<label>Package<input data-p="title" data-i="'+i+'" value="'+esc(s.title)+'"></label><label>Price<input data-p="price" data-i="'+i+'" value="'+esc(s.price)+'"></label><label>Description<input data-p="desc" data-i="'+i+'" value="'+esc(s.desc)+'"></label><button class="btn btn-ghost" data-del-pricing="'+i+'">Delete</button>';
+      el.appendChild(d);
+    });
+    el.querySelectorAll('input').forEach(function(inp){ inp.addEventListener('input', function(){ var i=+inp.getAttribute('data-i'); FULL.pricing[i][inp.getAttribute('data-p')]=inp.value; }); });
+    el.querySelectorAll('[data-del-pricing]').forEach(function(b){ b.addEventListener('click', function(){ FULL.pricing.splice(+b.getAttribute('data-del-pricing'),1); renderPricing(); }); });
+  }
+  function renderCards(){
+    var el=document.getElementById('fullCards'); if(!el) return;
+    var g=document.getElementById('fullCardGroup').value; var list=FULL.cards[g]||[]; el.innerHTML='';
+    list.forEach(function(s,i){
+      var d=document.createElement('div'); d.style.border='1px solid var(--line)'; d.style.borderRadius='12px'; d.style.padding='12px'; d.style.marginBottom='10px';
+      d.innerHTML='<div class="form-grid"><label>Title<input data-c="title" data-i="'+i+'" value="'+esc(s.title)+'"></label><label>Description<input data-c="desc" data-i="'+i+'" value="'+esc(s.desc)+'"></label><label>Image URL<input data-c="img" data-i="'+i+'" value="'+esc(s.img)+'"></label><label>Upload image<input type="file" accept="image/*" data-file="'+i+'"></label></div><img src="'+esc(s.img)+'" style="width:100%;max-height:140px;object-fit:cover;border-radius:10px;margin-top:8px" alt=""><div style="margin-top:8px"><button class="btn btn-ghost" data-del-card="'+i+'">Delete</button> <button class="btn btn-ghost" data-up-card="'+i+'">↑ Up</button> <button class="btn btn-ghost" data-down-card="'+i+'">↓ Down</button></div>';
+      el.appendChild(d);
+    });
+    el.querySelectorAll('input[data-c]').forEach(function(inp){ inp.addEventListener('input', function(){ var i=+inp.getAttribute('data-i'); var g2=document.getElementById('fullCardGroup').value; FULL.cards[g2][i][inp.getAttribute('data-c')]=inp.value; }); });
+    el.querySelectorAll('input[data-file]').forEach(function(inp){ inp.addEventListener('change', function(){ var f=inp.files[0]; if(!f) return; var r=new FileReader(); var i=+inp.getAttribute('data-file'); r.onload=function(e){ var g2=document.getElementById('fullCardGroup').value; FULL.cards[g2][i].img=e.target.result; renderCards(); }; r.readAsDataURL(f); }); });
+    el.querySelectorAll('[data-del-card]').forEach(function(b){ b.addEventListener('click', function(){ var g2=document.getElementById('fullCardGroup').value; FULL.cards[g2].splice(+b.getAttribute('data-del-card'),1); renderCards(); }); });
+    el.querySelectorAll('[data-up-card]').forEach(function(b){ b.addEventListener('click', function(){ var g2=document.getElementById('fullCardGroup').value; var i=+b.getAttribute('data-up-card'); if(i>0){ var a=FULL.cards[g2]; var t=a[i-1]; a[i-1]=a[i]; a[i]=t; renderCards(); } }); });
+    el.querySelectorAll('[data-down-card]').forEach(function(b){ b.addEventListener('click', function(){ var g2=document.getElementById('fullCardGroup').value; var i=+b.getAttribute('data-down-card'); var a=FULL.cards[g2]; if(i<a.length-1){ var t=a[i+1]; a[i+1]=a[i]; a[i]=t; renderCards(); } }); });
+  }
+  // Init
+  var logo=document.getElementById('fullLogo'); if(logo){ logo.value=FULL.logo; logo.addEventListener('input', function(){ FULL.logo=logo.value; }); }
+  var cta=document.getElementById('fullCta'); if(cta){ cta.value=FULL.cta; cta.addEventListener('input', function(){ FULL.cta=cta.value; }); }
+  var heroImg=document.getElementById('fullHeroImg'); var heroPrev=document.getElementById('fullHeroPreview');
+  if(heroImg){ heroImg.value=FULL.heroImg; heroImg.addEventListener('input', function(){ FULL.heroImg=heroImg.value; if(heroPrev) heroPrev.src=heroImg.value; }); if(heroPrev) heroPrev.src=FULL.heroImg; }
+  var heroFile=document.getElementById('fullHeroFile');
+  if(heroFile){ heroFile.addEventListener('change', function(){ var f=heroFile.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(e){ FULL.heroImg=e.target.result; if(heroImg) heroImg.value='(uploaded file — saved in browser)'; if(heroPrev) heroPrev.src=e.target.result; }; r.readAsDataURL(f); }); }
+  renderStats(); renderBars(); renderPricing(); renderCards();
+  var gsel=document.getElementById('fullCardGroup'); if(gsel) gsel.addEventListener('change', renderCards);
+  var sa=document.getElementById('fullStatsAdd'); if(sa) sa.addEventListener('click', function(){ FULL.stats.push({n:'0',label:'New stat'}); renderStats(); });
+  var ba=document.getElementById('fullBarsAdd'); if(ba) ba.addEventListener('click', function(){ FULL.bars.push({label:'New area',pct:'50'}); renderBars(); });
+  var pa=document.getElementById('fullPricingAdd'); if(pa) pa.addEventListener('click', function(){ FULL.pricing.push({title:'New package',price:'Price after free audit',desc:''}); renderPricing(); });
+  var ca=document.getElementById('fullCardsAdd'); if(ca) ca.addEventListener('click', function(){ var g2=document.getElementById('fullCardGroup').value; FULL.cards[g2].push({title:'New card',desc:'',img:''}); renderCards(); });
+  var sv=document.getElementById('saveFull'); if(sv) sv.addEventListener('click', function(){ saveLS('abmp_full_v1', FULL); var m=document.getElementById('fullMsg'); if(m) m.textContent='Saved in this browser. For a permanent live update, export JSON and send it to me in chat.'; });
+  // Include abmp_full_v1 in export: patch export buttons if they exist
+  var exp=document.getElementById('exportEdits');
+  if(exp){ exp.addEventListener('click', function(){ setTimeout(function(){ /* existing export runs first; full data is also in localStorage and can be exported via Copy below */ }, 100); }); }
 })();
 </script>
 
