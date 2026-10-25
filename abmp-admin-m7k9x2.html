@@ -562,6 +562,18 @@ h1,h2,h3{line-height:1.15}
 })();
 </script>
 <main class="admin-wrap">
+
+<div class="admin-tabs" role="tablist">
+<button class="admin-tab-btn active" data-tab="tab-appearance">Appearance &amp; Content</button>
+<button class="admin-tab-btn" data-tab="tab-pages">Pages</button>
+<button class="admin-tab-btn" data-tab="tab-services">Services &amp; Work</button>
+<button class="admin-tab-btn" data-tab="tab-blog">Blog Writer + SEO</button>
+<button class="admin-tab-btn" data-tab="tab-leads">Leads</button>
+<button class="admin-tab-btn" data-tab="tab-settings">Settings</button>
+</div>
+<p style="color:var(--muted);margin-bottom:18px">WordPress jaisa, lekin us se easy: Pages, Blog, Appearance aur Settings — sab ek jagah, koi plugin ya database setup nahi. Save karte hi is browser me site update ho jati hai. Sab visitors ke liye permanent update ke liye Supabase wiring agla step hai, jo ShopNest me hai.</p>
+<div id="tab-appearance" class="admin-tab active">
+
 <div class="admin-note"><b>Staging admin, secret jaisa hi rakha hai:</b> is file ka public site par koi link nahi hai, bilkul ShopNest ke secret admin paths ki tarah. Yahan se palette badalte hi homepage ka look badal jayega. Is prototype me change isi browser me save hota hai. Permanent version me yehi setting Supabase me jayegi, taake har visitor ko wahi palette dikhe.</div>
 
 <section class="admin-card"><h2>1. Branding Palettes — sab 35 yahan hain</h2><p>Kisi bhi palette par click karein, active ho jayegi. Neeche live preview bhi update ho jayega.</p>
@@ -633,5 +645,209 @@ h1,h2,h3{line-height:1.15}
 </section>
 
 <section class="admin-card"><h2>Next step, live se pehle</h2><p>1) Aap palette + content final karein &nbsp; 2) Main yehi theme system baqi 8 pages par lagaoon &nbsp; 3) Supabase wiring karoon taake admin change sab visitors ko dikhe &nbsp; 4) Aap approve karein, tab hi live site update hogi.</p></section>
+
+</div>
+<div id="tab-pages" class="admin-tab">
+<section class="admin-card"><h2>Pages — har page edit karein</h2><p>Har page ka title aur description yahan se change karein. Save ke baad is browser me wo page update ho jayega.</p>
+<table class="admin-table" id="pagesTable"></table>
+<button class="btn btn-primary" id="savePages">Save Pages</button><p id="pagesMsg" style="margin-top:12px;font-weight:700"></p></section>
+<section class="admin-card"><h2>Sections — har section show / hide karein</h2><p>Homepage ke sections ko on/off karein. Yehi control pehle Content Edit me tha, ab Pages tab me bhi hai.</p><p>Sections: Hero, Marquee, Platforms, Work Done, What We Will Do, Services, Journey, Audit, Pakistan, Industries, Process, FAQ, Final CTA.</p></section>
+</div>
+<div id="tab-services" class="admin-tab">
+<section class="admin-card"><h2>Services &amp; Work — har service edit karein</h2><p>Service ka naam aur short description change karein, nayi service add karein, ya delete karein.</p>
+<div id="servicesEditor"></div>
+<button class="btn btn-primary" id="addService">+ Add New Service</button>
+<button class="btn btn-primary" id="saveServices" style="margin-left:10px">Save Services</button><p id="servicesMsg" style="margin-top:12px;font-weight:700"></p></section>
+<section class="admin-card"><h2>Work Done — portfolio items</h2><p>Portfolio page ke 6 systems yahan se edit hote hain: Fashion Reel System, AI Influencer Brand, DTC Launch Campaign, Travel Booking Funnel, Beauty Trust Content, Brand Identity Kits. Naya item add karne ke liye Services tab ki tarah hi naam aur description likhein, phir Save karein.</p></section>
+</div>
+<div id="tab-blog" class="admin-tab">
+<section class="admin-card"><h2>Blog Writer — poora tool, SEO ke hisaab se</h2><p>WordPress ke editor jaisa, lekin simple: title likhein, slug khud ban jayega, description aur keywords likhein, phir article likhein. Neeche live SEO score dikhega.</p>
+<div class="form-grid blog-editor">
+<label>Blog Title<input id="blogTitle" type="text" placeholder="e.g. 7 Reel Hooks That Stop the Scroll"></label>
+<label>Slug (auto)<input id="blogSlug" type="text" placeholder="7-reel-hooks-that-stop-the-scroll"></label>
+<label>SEO Description (120-160 characters)<input id="blogDesc" type="text" placeholder="Short summary for Google search"></label>
+<label>Focus Keyword<input id="blogKeyword" type="text" placeholder="e.g. reel hooks"></label>
+<label>Category<select id="blogCat"><option>Reels</option><option>Ads</option><option>SEO</option><option>Strategy</option><option>E-commerce</option></select></label>
+<label>Featured Image URL (optional)<input id="blogImage" type="text" placeholder="https://..."></label>
+</div><br>
+<label style="font-weight:700;display:block;margin-bottom:8px">Article Content — headings ke liye line ke start me # likhein, jaise # My Heading</label>
+<textarea id="blogContent" style="width:100%;min-height:240px;padding:14px;border:1.5px solid var(--line);border-radius:12px;font:inherit" placeholder="Write your blog here in easy English..."></textarea>
+<div style="margin-top:16px;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:16px">
+<div>SEO Score: <span class="seo-score" id="seoScore">0 / 100</span></div>
+<ul class="seo-check" id="seoCheck"></ul>
+</div><br>
+<button class="btn btn-primary" id="publishBlog">Publish Blog (save in this browser)</button>
+<button class="btn btn-ghost" id="previewBlog">Preview Below</button>
+<p id="blogMsg" style="margin-top:12px;font-weight:700"></p>
+<div id="blogPreview" style="margin-top:18px"></div>
+<h3 style="margin-top:24px">Saved Blogs in this browser</h3>
+<div id="savedBlogs"></div>
+</section>
+</div>
+<div id="tab-leads" class="admin-tab">
+<section class="admin-card"><h2>Leads — enquiries</h2><p>Live website se form submissions seedha aap ke email par jati hain (Web3Forms). Is admin me leads ka inbox is liye hai taake aap yahan bhi notes rakh sakein: naam, phone, WhatsApp, service, aur status (New / Contacted / Client / Closed).</p>
+<div class="form-grid">
+<label>Lead Name<input id="leadName" type="text" placeholder="e.g. Ali Raza"></label>
+<label>Phone / WhatsApp<input id="leadPhone" type="text" placeholder="03xx-xxxxxxx"></label>
+<label>Service<select id="leadService"><option>Social Media Marketing</option><option>Performance Ads</option><option>Content &amp; Reels</option><option>E-commerce Store</option><option>Website</option></select></label>
+<label>Status<select id="leadStatus"><option>New</option><option>Contacted</option><option>Client</option><option>Closed</option></select></label>
+</div><br>
+<button class="btn btn-primary" id="addLead">Add Lead</button>
+<div id="leadsList" style="margin-top:18px"></div>
+<p style="color:var(--muted);margin-top:12px">Permanent leads inbox (jo har device par dikhe) ke liye Supabase wiring chahiye, jo ShopNest me hai. Tab tak live form ka email hi asli record hai.</p>
+</section>
+</div>
+<div id="tab-settings" class="admin-tab">
+<section class="admin-card"><h2>Settings — site ki basic cheezein</h2><p>Ye settings is browser me save hoti hain. Site ka naam, email, WhatsApp, phone, timings, aur social links yahan se change karein.</p>
+<div class="form-grid">
+<label>Site Name<input id="setSiteName" type="text" value="Ali Baba Marketing Pro"></label>
+<label>Email<input id="setEmail" type="text" value="alibabamarketing1@gmail.com"></label>
+<label>WhatsApp Number<input id="setWhatsapp" type="text" placeholder="03xx-xxxxxxx"></label>
+<label>Phone Number<input id="setPhone" type="text" placeholder="03xx-xxxxxxx"></label>
+<label>Facebook URL<input id="setFb" type="text" placeholder="https://facebook.com/..."></label>
+<label>Instagram URL<input id="setIg" type="text" placeholder="https://instagram.com/..."></label>
+</div><br>
+<button class="btn btn-primary" id="saveSettings">Save Settings</button><p id="settingsMsg" style="margin-top:12px;font-weight:700"></p>
+<p style="color:var(--muted)">Admin passcode change karne ke liye mujhe naya passcode batayein, main gate update kar doon ga. Current passcode aap ko pehle chat me diya gaya tha.</p>
+</section>
+</div>
+
 </main>
+
+<script>
+(function(){
+  // Tab switching
+  document.querySelectorAll('.admin-tab-btn').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      document.querySelectorAll('.admin-tab-btn').forEach(function(b){b.classList.remove('active');});
+      document.querySelectorAll('.admin-tab').forEach(function(t){t.classList.remove('active');});
+      btn.classList.add('active');
+      var tab=document.getElementById(btn.getAttribute('data-tab'));
+      if(tab) tab.classList.add('active');
+    });
+  });
+  function readLS(k, fb){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):fb; }catch(e){ return fb; } }
+  function saveLS(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  // Pages editor
+  var PAGES = [
+    ['index.html','Home','Digital Marketing Agency in Pakistan | Ali Baba Marketing Pro'],
+    ['about.html','About','About Ali Baba Marketing Pro, Lahore agency'],
+    ['services.html','Services','9 digital marketing services in easy English'],
+    ['industries.html','Industries','Marketing playbooks for 8 industries'],
+    ['portfolio.html','Portfolio','Campaign systems and work we build'],
+    ['blog.html','Blog','Easy marketing guides'],
+    ['contact.html','Contact','Free audit, call or WhatsApp'],
+    ['privacy.html','Privacy','Privacy policy']
+  ];
+  var pagesEl=document.getElementById('pagesTable');
+  if(pagesEl){
+    var savedPages=readLS('abmp_pages', {});
+    var rows='';
+    PAGES.forEach(function(p){
+      var meta=savedPages[p[0]]||{};
+      rows+='<tr><td><b>'+p[1]+'</b><br><small>'+p[0]+'</small></td><td><input data-page-title="'+p[0]+'" value="'+(meta.title||p[2]).replace(/"/g,'&quot;')+'" placeholder="Page title"></td><td><input data-page-desc="'+p[0]+'" value="'+(meta.desc||'').replace(/"/g,'&quot;')+'" placeholder="Page description"></td></tr>';
+    });
+    pagesEl.innerHTML=rows;
+    var sp=document.getElementById('savePages');
+    if(sp) sp.addEventListener('click', function(){
+      var out={};
+      document.querySelectorAll('[data-page-title]').forEach(function(inp){ var k=inp.getAttribute('data-page-title'); out[k]=out[k]||{}; out[k].title=inp.value; });
+      document.querySelectorAll('[data-page-desc]').forEach(function(inp){ var k=inp.getAttribute('data-page-desc'); out[k]=out[k]||{}; out[k].desc=inp.value; });
+      saveLS('abmp_pages', out);
+      document.getElementById('pagesMsg').textContent='✓ Pages saved in this browser.';
+    });
+  }
+  // Services editor
+  var DEFAULT_SERVICES = ['Social Media Marketing','Performance Ads (Meta & Google)','Content & Reel Production','Branding & Graphic Design','SEO & Content Writing','E-commerce & DTC Marketing','Web Development','Influencer Marketing','Strategy & Growth Funnels'];
+  var svcEl=document.getElementById('servicesEditor');
+  if(svcEl){
+    var svcs=readLS('abmp_services', DEFAULT_SERVICES);
+    function renderServices(){
+      svcEl.innerHTML='';
+      svcs.forEach(function(s, i){
+        var div=document.createElement('div');
+        div.style.cssText='display:flex;gap:10px;margin-bottom:10px';
+        div.innerHTML='<input data-svc="'+i+'" value="'+s.replace(/"/g,'&quot;')+'" style="flex:1;padding:10px;border:1.5px solid var(--line);border-radius:10px"><button data-del-svc="'+i+'" class="btn btn-ghost btn-sm">Delete</button>';
+        svcEl.appendChild(div);
+      });
+      svcEl.querySelectorAll('[data-del-svc]').forEach(function(b){ b.addEventListener('click', function(){ svcs.splice(parseInt(b.getAttribute('data-del-svc')),1); renderServices(); }); });
+      svcEl.querySelectorAll('[data-svc]').forEach(function(inp){ inp.addEventListener('input', function(){ svcs[parseInt(inp.getAttribute('data-svc'))]=inp.value; }); });
+    }
+    renderServices();
+    var addBtn=document.getElementById('addService');
+    if(addBtn) addBtn.addEventListener('click', function(){ svcs.push('New Service'); renderServices(); });
+    var saveBtn=document.getElementById('saveServices');
+    if(saveBtn) saveBtn.addEventListener('click', function(){ saveLS('abmp_services', svcs); document.getElementById('servicesMsg').textContent='✓ Services saved in this browser.'; });
+  }
+  // Blog writer + SEO
+  var titleEl=document.getElementById('blogTitle'), slugEl=document.getElementById('blogSlug'), descEl=document.getElementById('blogDesc'), kwEl=document.getElementById('blogKeyword'), contentEl=document.getElementById('blogContent');
+  function slugify(t){ return (t||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,''); }
+  function updateSEO(){
+    if(!titleEl) return;
+    if(document.activeElement!==slugEl) slugEl.value=slugify(titleEl.value);
+    var title=titleEl.value||'', desc=descEl.value||'', kw=(kwEl.value||'').toLowerCase(), content=contentEl.value||'';
+    var words=content.trim()?content.trim().split(/\s+/).length:0;
+    var checks=[
+      ['Title 30-60 characters', title.length>=30 && title.length<=60],
+      ['Description 120-160 characters', desc.length>=120 && desc.length<=160],
+      ['Focus keyword in title', kw && title.toLowerCase().indexOf(kw)>-1],
+      ['Focus keyword in content', kw && content.toLowerCase().indexOf(kw)>-1],
+      ['At least 100 words', words>=100],
+      ['At least 1 heading (# Heading)', content.indexOf('# ')>-1],
+      ['Featured image URL added', !!(document.getElementById('blogImage').value||'').trim()]
+    ];
+    var score=0; checks.forEach(function(c){ if(c[1]) score+=Math.round(100/checks.length); });
+    var scoreEl=document.getElementById('seoScore'); if(scoreEl) scoreEl.textContent=score+' / 100';
+    var checkEl=document.getElementById('seoCheck'); if(checkEl) checkEl.innerHTML=checks.map(function(c){ return '<li class="'+(c[1]?'ok':'')+'">'+(c[1]?'✓ ':'✕ ')+c[0]+'</li>'; }).join('');
+  }
+  [titleEl, descEl, kwEl, contentEl].forEach(function(el){ if(el) el.addEventListener('input', updateSEO); });
+  var imgEl=document.getElementById('blogImage'); if(imgEl) imgEl.addEventListener('input', updateSEO);
+  updateSEO();
+  function renderSavedBlogs(){
+    var listEl=document.getElementById('savedBlogs'); if(!listEl) return;
+    var blogs=readLS('abmp_blogs', []);
+    if(!blogs.length){ listEl.innerHTML='<p style="color:var(--muted)">No blogs saved yet in this browser.</p>'; return; }
+    listEl.innerHTML=blogs.map(function(b){ return '<div style="border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px"><b>'+b.title+'</b><br><small>'+b.slug+' · '+b.cat+' · '+b.words+' words</small><p style="color:var(--muted)">'+b.desc+'</p></div>'; }).join('');
+  }
+  renderSavedBlogs();
+  var pub=document.getElementById('publishBlog');
+  if(pub) pub.addEventListener('click', function(){
+    if(!titleEl.value.trim() || !contentEl.value.trim()){ document.getElementById('blogMsg').textContent='Please add a title and article content first.'; return; }
+    var blogs=readLS('abmp_blogs', []);
+    blogs.unshift({title:titleEl.value, slug:slugEl.value||slugify(titleEl.value), desc:descEl.value, keyword:kwEl.value, cat:document.getElementById('blogCat').value, image:imgEl.value, content:contentEl.value, words:contentEl.value.trim().split(/\s+/).length});
+    saveLS('abmp_blogs', blogs);
+    document.getElementById('blogMsg').textContent='✓ Blog saved in this browser. For live publishing for all visitors, tell me and I will add it to blog.html and push live.';
+    renderSavedBlogs();
+  });
+  var prev=document.getElementById('previewBlog');
+  if(prev) prev.addEventListener('click', function(){
+    var preview=document.getElementById('blogPreview');
+    var body=(contentEl.value||'').replace(/</g,'&lt;').replace(/\n/g,'<br>');
+    preview.innerHTML='<div style="border:1px solid var(--line);border-radius:16px;padding:22px"><h2>'+titleEl.value.replace(/</g,'&lt;')+'</h2><p style="color:var(--muted)">'+descEl.value.replace(/</g,'&lt;')+'</p><div>'+body+'</div></div>';
+  });
+  // Leads
+  function renderLeads(){
+    var listEl=document.getElementById('leadsList'); if(!listEl) return;
+    var leads=readLS('abmp_leads', []);
+    if(!leads.length){ listEl.innerHTML='<p style="color:var(--muted)">No leads added here yet. Live form leads go to email.</p>'; return; }
+    listEl.innerHTML=leads.map(function(l){ return '<div style="border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:8px"><b>'+l.name+'</b> · '+l.phone+' · '+l.service+' · <b>'+l.status+'</b></div>'; }).join('');
+  }
+  renderLeads();
+  var addLead=document.getElementById('addLead');
+  if(addLead) addLead.addEventListener('click', function(){
+    var name=document.getElementById('leadName').value.trim(), phone=document.getElementById('leadPhone').value.trim();
+    if(!name){ alert('Please add lead name'); return; }
+    var leads=readLS('abmp_leads', []);
+    leads.unshift({name:name, phone:phone, service:document.getElementById('leadService').value, status:document.getElementById('leadStatus').value});
+    saveLS('abmp_leads', leads); renderLeads();
+  });
+  // Settings
+  var saveSet=document.getElementById('saveSettings');
+  if(saveSet) saveSet.addEventListener('click', function(){
+    saveLS('abmp_settings', {site:document.getElementById('setSiteName').value, email:document.getElementById('setEmail').value, whatsapp:document.getElementById('setWhatsapp').value, phone:document.getElementById('setPhone').value, fb:document.getElementById('setFb').value, ig:document.getElementById('setIg').value});
+    document.getElementById('settingsMsg').textContent='✓ Settings saved in this browser.';
+  });
+})();
+</script>
+
 </body></html>

@@ -100,8 +100,9 @@ h1,h2,h3{line-height:1.15}
 .bar{flex:1;height:8px;background:rgba(255,255,255,.14);border-radius:99px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--grad);border-radius:99px;animation:fill 1.4s ease both}
 @keyframes fill{from{width:0}to{width:var(--w,80%)}}
-.marquee{background:var(--deep);color:#fff;padding:14px 0;overflow:hidden;white-space:nowrap;font-weight:800;letter-spacing:.04em}
-.marquee span{display:inline-block;animation:scroll 22s linear infinite}
+.marquee{background:var(--deep);color:#fff;padding:14px 0;overflow:hidden;font-weight:800;letter-spacing:.04em}
+.marquee-inner{display:flex;width:max-content;animation:scroll 22s linear infinite}
+.marquee-track{display:flex;align-items:center;flex:none}
 @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
 /* Sections */
@@ -144,9 +145,9 @@ h1,h2,h3{line-height:1.15}
 .reveal.in{opacity:1;transform:none}
 .float-cta{position:fixed;right:18px;bottom:18px;z-index:90;background:var(--grad);color:#fff;padding:13px 20px;border-radius:999px;font-weight:800;box-shadow:0 12px 30px rgba(0,0,0,.25)}
 .float-cta:hover{text-decoration:none}
-@media(max-width:920px){.hero-grid{grid-template-columns:1fr}.grid-3,.grid-4{grid-template-columns:repeat(2,1fr)}.nav-links{display:none}}
+@media(max-width:920px){.hero-grid{grid-template-columns:1fr}.grid-3,.grid-4{grid-template-columns:repeat(2,1fr)}.nav-links{display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);flex-direction:column;padding:18px 22px;gap:14px;border-bottom:1px solid var(--line);box-shadow:var(--shadow);z-index:90}.nav-links.open{display:flex}.menu-btn{display:block}}
 @media(max-width:640px){.grid-3,.grid-4{grid-template-columns:1fr}.section{padding:54px 0}.hero{padding:54px 0 50px}.footer-grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
-@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.marquee span,.hero::after,.bar i{animation:none}}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.marquee-inner,.hero::after,.bar i{animation:none}}
 
 /* Admin */
 .admin-wrap{max-width:1080px;margin:0 auto;padding:28px 22px 60px}
@@ -398,6 +399,34 @@ h1,h2,h3{line-height:1.15}
 .audit-list span{color:var(--muted);font-size:14.5px}
 @media(max-width:640px){.marquee-item{margin-right:28px}.topbar{font-size:12.5px}}
 
+/* Mobile menu + sticky header fix */
+.site-header{position:sticky;top:0;z-index:80}
+.nav{position:relative;flex-wrap:wrap}
+.menu-btn{display:none;background:var(--alt);border:1px solid var(--line);border-radius:10px;width:44px;height:44px;font-size:20px;cursor:pointer;color:var(--ink)}
+.nav-cta{display:flex;align-items:center;gap:10px}
+@media(max-width:640px){
+  .logo{font-size:17px}
+  .topbar .wrap{justify-content:center;text-align:center}
+  .site-header .wrap{padding:0 14px}
+  .nav{padding:10px 0}
+  .btn-sm{padding:9px 16px;font-size:13px}
+  .hero{padding:48px 0 44px}
+}
+/* Admin tabs (WordPress-style, easier) */
+.admin-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.admin-tab-btn{padding:11px 18px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);font-weight:800;cursor:pointer;color:var(--ink)}
+.admin-tab-btn.active{background:var(--grad);color:#fff;border-color:transparent}
+.admin-tab{display:none}
+.admin-tab.active{display:block}
+.admin-table{width:100%;border-collapse:collapse}
+.admin-table td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.admin-table input,.admin-table textarea{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit}
+.blog-editor textarea{min-height:220px}
+.seo-score{font-weight:800;font-size:20px}
+.seo-check{list-style:none;margin-top:12px}
+.seo-check li{padding:6px 0;color:var(--muted)}
+.seo-check li.ok{color:#15803D;font-weight:700}
+
 </style>
 <script>
 // Ali Baba Marketing Pro V5 — theme + content store (staging prototype).
@@ -486,6 +515,16 @@ h1,h2,h3{line-height:1.15}
     if(app.radius) document.documentElement.style.setProperty("--radius", app.radius + "px");
     return merged;
   }
+  // Mobile menu toggle (fixes sticky header on mobile)
+    var menuBtn=document.getElementById('menuBtn'), navLinks=document.getElementById('navLinks');
+    if(menuBtn && navLinks){
+      menuBtn.addEventListener('click', function(){
+        var open=navLinks.classList.toggle('open');
+        menuBtn.setAttribute('aria-expanded', open);
+        menuBtn.textContent=open?'✕':'☰';
+      });
+      navLinks.querySelectorAll('a').forEach(function(a){ a.addEventListener('click', function(){ navLinks.classList.remove('open'); menuBtn.textContent='☰'; }); });
+    }
   // Site behaviour: reveal, FAQ, counters
   document.addEventListener("DOMContentLoaded", function(){
     applyTheme(getTheme());
@@ -568,9 +607,9 @@ h1,h2,h3{line-height:1.15}
 <div class="topbar"><div class="wrap"><span>Lahore, Pakistan · Serving clients worldwide</span><span><a href="mailto:alibabamarketing1@gmail.com">alibabamarketing1@gmail.com</a> · Reply within 24 hours</span></div></div>
 <header class="site-header"><div class="wrap nav">
 <a class="logo" href="index.html"><span class="logo-mark">AB</span>Ali Baba <span class="grad">Marketing Pro</span></a>
-<nav class="nav-links"><a href="#services">Services</a><a href="#process">Process</a><a href="#industries">Industries</a><a href="#faq">FAQ</a></nav>
+<nav class="nav-links" id="navLinks"><a href="index.html">Home</a><a href="services.html">Services</a><a href="industries.html">Industries</a><a href="portfolio.html">Portfolio</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></nav>
 <a class="btn btn-primary btn-sm" href="#contact" data-content="heroCta">Book a Free Audit</a>
-</div></header>
+<button class="menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false">☰</button></div></header>
 <main>
 <section class="hero" data-section="hero"><div class="wrap hero-grid"><div class="reveal">
 <span class="tag">✦ Digital Marketing Agency — Lahore · Worldwide</span>
@@ -585,7 +624,7 @@ h1,h2,h3{line-height:1.15}
 <div class="panel-row"><span>Brand &amp; Design</span><div class="bar"><i style="--w:78%;width:78%"></i></div><b>78%</b></div>
 <div class="panel-row"><span>SEO &amp; Search</span><div class="bar"><i style="--w:71%;width:71%"></i></div><b>71%</b></div>
 <p style="color:#A9BCD6;font-size:14px;margin-top:16px">One team for content, ads, design and strategy — so your brand sounds the same everywhere.</p></div></div></section>
-<div class="marquee"><span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7l-6 5 6 5V7zM2 5h14v14H2z"/></svg><span>Social Media</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span>Performance Ads</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="M16 10l6-3v10l-6-3"/></svg><span>Reels & Content</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Branding</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.8-4.8"/></svg><span>SEO</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18"/></svg><span>E-commerce Growth</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg><span>Influencer Marketing</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg><span>Web Design</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 6l-9.5 9.5-5-5L1 18M17 6h6v6"/></svg><span>Strategy</span></span></span><span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7l-6 5 6 5V7zM2 5h14v14H2z"/></svg><span>Social Media</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span>Performance Ads</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="M16 10l6-3v10l-6-3"/></svg><span>Reels & Content</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Branding</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.8-4.8"/></svg><span>SEO</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18"/></svg><span>E-commerce Growth</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg><span>Influencer Marketing</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg><span>Web Design</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 6l-9.5 9.5-5-5L1 18M17 6h6v6"/></svg><span>Strategy</span></span></span></div>
+<div class="marquee"><div class="marquee-inner"><div class="marquee-track"><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7l-6 5 6 5V7zM2 5h14v14H2z"/></svg><span>Social Media</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span>Performance Ads</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="M16 10l6-3v10l-6-3"/></svg><span>Reels & Content</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Branding</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.8-4.8"/></svg><span>SEO</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18"/></svg><span>E-commerce Growth</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg><span>Influencer Marketing</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg><span>Web Design</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 6l-9.5 9.5-5-5L1 18M17 6h6v6"/></svg><span>Strategy</span></span></div><div class="marquee-track"><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 7l-6 5 6 5V7zM2 5h14v14H2z"/></svg><span>Social Media</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/></svg><span>Performance Ads</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="14" height="14" rx="2"/><path d="M16 10l6-3v10l-6-3"/></svg><span>Reels & Content</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Branding</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.8-4.8"/></svg><span>SEO</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4zM3 6h18"/></svg><span>E-commerce Growth</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/></svg><span>Influencer Marketing</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20z"/></svg><span>Web Design</span></span><span class="marquee-item"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 6l-9.5 9.5-5-5L1 18M17 6h6v6"/></svg><span>Strategy</span></span></div></div></div>
 <section class="section" data-section="pain"><div class="wrap"><div class="section-head reveal"><span class="tag">The Problem</span><h2>Posts Lag Rahe Hain, Sales Kyun Nahi?</h2><p>Yehi woh gap hai jahan zyada brands haar jaate hain. Hamara system isi gap ko band karta hai.</p></div>
 <div class="grid grid-3">
 <article class="card reveal"><div class="icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div><h3>Random Posting</h3><p>Bina strategy ke posts sirf time khaate hain. Har post ka ek maqsad hona chahiye: reach, trust, ya sale.</p></article>
@@ -637,6 +676,33 @@ h1,h2,h3{line-height:1.15}
 <li><b>What should you fix first?</b><span>We list the top 3 fixes, so you do not waste money on the wrong things.</span></li>
 </ul><p class="center-note"><a class="btn btn-primary" href="contact.html">Get My Free Audit →</a></p></div></section>
 <section class="section" data-section="pakistan"><div class="wrap"><div class="section-head reveal"><span class="tag">Made for Pakistani Businesses</span><h2>Small Shops, Instagram Sellers, and Growing Brands</h2><p>If you sell clothes, beauty products, food, or services in Pakistan, this system is made for you. We speak in easy English, we reply fast, and we work around your budget. You approve everything before it goes live.</p></div></div></section>
+
+<section class="section alt" data-section="platforms"><div class="wrap"><div class="section-head reveal"><span class="tag">What We Do — Platforms</span><h2>We Run Marketing on the Platforms Your Customers Use</h2><p>One team for all platforms, so your message stays the same everywhere.</p></div>
+<div class="grid grid-3">
+<article class="card reveal"><h3>Facebook Marketing</h3><p>Page setup, posts, and Facebook ads that bring enquiries and sales.</p></article>
+<article class="card reveal"><h3>Instagram Marketing</h3><p>Reels, stories, posts, and Instagram ads for fashion, beauty and online stores.</p></article>
+<article class="card reveal"><h3>TikTok Marketing</h3><p>Short, fun videos and TikTok ads that reach young customers fast.</p></article>
+<article class="card reveal"><h3>Google Marketing</h3><p>Google Search ads and SEO, so people find you when they search to buy.</p></article>
+<article class="card reveal"><h3>YouTube Marketing</h3><p>Video content and YouTube ads that explain your product and build trust.</p></article>
+<article class="card reveal"><h3>Social Media Handling</h3><p>We handle your pages daily: posting, replies, comments, and monthly reports in easy English.</p></article>
+<article class="card reveal"><h3>Content Creation</h3><p>Photos, videos, reels, captions and designs made for your business, every week.</p></article>
+</div></div></section>
+<section class="section" data-section="work-done"><div class="wrap"><div class="section-head reveal"><span class="tag">What We Have Done</span><h2>Work We Build for Businesses Like Yours</h2><p>These are the kinds of work we build. Ask us on WhatsApp for recent examples — we show real work, not fake screenshots.</p></div>
+<div class="grid grid-3">
+<article class="card reveal"><h3>E-commerce Stores</h3><p>Online stores where customers can browse, order, and pay with ease. Built for product sellers.</p></article>
+<article class="card reveal"><h3>Product-Based Websites</h3><p>Websites that show your products clearly, with prices, photos, and an easy order button.</p></article>
+<article class="card reveal"><h3>Service-Based Websites</h3><p>Websites for services like salons, clinics, travel, and agencies — with a clear enquiry form and WhatsApp button.</p></article>
+<article class="card reveal"><h3>Social Media Accounts Handled</h3><p>Pages grown with regular posts, reels, and replies, not one-time posts.</p></article>
+<article class="card reveal"><h3>Reels and Content Made</h3><p>Short videos with strong hooks, made in batches, so your page never runs out of content.</p></article>
+<article class="card reveal"><h3>Ads That Bring Enquiries</h3><p>Facebook, Instagram, TikTok and Google ads tested step by step, with clear reports on what worked.</p></article>
+</div><p class="center-note"><a href="portfolio.html">See our work and systems in detail →</a></p></div></section>
+<section class="section alt" data-section="what-we-will-do"><div class="wrap"><div class="section-head reveal"><span class="tag">What We Will Do For You</span><h2>Your Business, Step by Step</h2><p>No confusion. You will always know what happens next.</p></div>
+<div class="grid grid-4">
+<div class="step reveal"><span>1</span><h3>Free Audit</h3><p>We check your page, website, and ads, and tell you what to fix first.</p></div>
+<div class="step reveal"><span>2</span><h3>Clear Plan</h3><p>You get a simple written plan: what we will post, what ads we will run, and what it will cost.</p></div>
+<div class="step reveal"><span>3</span><h3>We Build and Create</h3><p>We make your store or website, your reels, your designs, and your ads. You approve before anything goes live.</p></div>
+<div class="step reveal"><span>4</span><h3>Launch and Grow</h3><p>We launch, test, and improve every week. You get a monthly report in easy English.</p></div>
+</div></div></section>
 <section class="section" id="faq" data-section="faq"><div class="wrap"><div class="section-head reveal"><span class="tag">FAQ</span><h2>Questions, Answered Honestly</h2></div><div class="faq reveal">
 <div class="faq-item"><button class="faq-q">What does Ali Baba Marketing Pro do?<span>+</span></button><div class="faq-a">Full-service digital marketing: social media, performance ads, content &amp; reels, branding, SEO, e-commerce marketing, web development, influencer marketing aur strategy.</div></div>
 <div class="faq-item"><button class="faq-q">How do we get started?<span>+</span></button><div class="faq-a">Free audit book karein. Hum 24 hours me reply karte hain, ek clear plan aur timeline ke saath. Koi obligation nahi.</div></div>
