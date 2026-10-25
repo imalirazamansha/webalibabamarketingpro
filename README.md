@@ -1,37 +1,35 @@
-# Ali Baba Marketing Pro — Official Website
+# Ali Baba Marketing Pro — Official Website (V5)
 
 Multi-page, SEO-optimised website for **Ali Baba Marketing Pro**, a growth-first digital marketing agency based in Lahore, serving clients worldwide.
 
 ## Live Site
 Published via GitHub Pages: https://imalirazamansha.github.io/webalibabamarketingpro/
 
+## V5 — Black + Lime default, 35 palettes in admin
+- Default theme: Black + Lime (dark black, lime green accents, modern growth feel).
+- All 35 palettes live in the secret admin panel, so the owner can switch the whole site look without a rebuild: original 5, 10 big-company-style, 10 soft/pastel, 10 industry-mapped.
+- Pages are self-contained (CSS and JavaScript inlined), so each page works on its own. Shared files `styles.css` / `script.js` in this repo are kept for the ShopNest landing page (`shopnest.html`), which still uses the earlier theme — do not delete them.
+- Secret admin file (not linked from the public site, noindex): `abmp-admin-m7k9x2.html` — palette switcher, content/section/appearance editing, live preview. Basic passcode gate for a static site; permanent server-level admin sign-in (Supabase, as ShopNest uses) is the next security step.
+
 ## Pages (all interlinked)
-- `index.html` — Home (hero, services preview, why us, industries, process, blog teasers, FAQ)
+- `index.html` — Home (hero, icon marquee, services, growth journey Get Found → Get Chosen → Keep Customers, free-audit checklist, made for Pakistani businesses, FAQ)
 - `about.html` — About Us (story, mission & values, team model)
-- `services.html` — 9 detailed services with anchor sections
+- `services.html` — 9 detailed services
 - `industries.html` — 8 industry playbooks (fashion, beauty, jewelry, home, e-commerce/DTC, travel, food, local)
 - `portfolio.html` — Campaign systems & reporting approach
-- `blog.html` — 3 full guides (reel hooks, Meta ads for DTC, 30-day content calendar)
-- `contact.html` — Contact form (Web3Forms API — submissions delivered to Gmail, in-page success message), details, what-happens-next, FAQ
+- `blog.html` — 3 guides in easy English (reel hooks, Meta ads for DTC, 30-day content calendar)
+- `contact.html` — Contact form (Web3Forms — submissions delivered to Gmail, in-page success message). Fields: name, email, phone number, WhatsApp number, business/website, service, message, plus checkboxes for contact preference: Call me / WhatsApp me.
 - `privacy.html` — Privacy policy
-- Shared: `styles.css`, `script.js`
+- `shopnest.html` — ShopNest resell landing page (earlier theme, preserved)
 
-## SEO
-Unique title + meta description per page, canonical URLs, Open Graph & Twitter cards,
-JSON-LD structured data (Organization, BreadcrumbList, FAQ, Service ItemList, Blog, ContactPage),
-semantic HTML with one H1 per page, `sitemap.xml` (8 URLs) and `robots.txt`.
+## Copy and SEO
+- Easy English for a Pakistani audience: short sentences, simple words, local examples (Instagram sellers, small shops, WhatsApp ordering).
+- Unique title + meta description + keywords per page, canonical URLs, Open Graph & Twitter cards, JSON-LD Organization data, semantic HTML with one H1 per page, `sitemap.xml` (8 URLs) and `robots.txt` (admin disallowed).
+- Fully responsive / mobile-first: full-width tap targets, 16px form inputs, responsive grids and marquee.
 
-## Branding (IT Professional Theme — v3)
-- Deep Navy `#0A2540`, Royal Blue `#2563EB` → Sky `#0EA5E9`, Accent Cyan `#06B6D4`
-- Ink `#0F172A` (slate), background `#F8FAFC`, muted slate text
-- Fonts: Plus Jakarta Sans (headings) + Inter (body)
-- Section background photography (Unsplash, topic-matched): developers at work (home hero),
-  team collaboration (Why Choose Us + About), analytics (Services), corporate architecture (Industries),
-  strategy workshop (Portfolio), writing desk (Blog), business meeting (Contact), signing (Privacy),
-  global network (CTA banners)
-- Fully responsive / mobile-first polish: hamburger nav, full-width tap targets, 16px form inputs
-
-Original design and copy — created for Ali Baba Marketing Pro. Inspired only in structure by reference agency sites.
+## Security notes (static GitHub Pages)
+- Forms use HTTPS POST to Web3Forms with a honeypot anti-spam field and input validation. No passwords or private data are stored in the site files.
+- Admin is not linked publicly, is noindex/nofollow, and sits behind a passcode gate. This is a deterrent on a static site, not server authentication.
 
 ## Contact
 Email: alibabamarketing1@gmail.com — Lahore, Pakistan · Mon–Sat 9am–7pm PKT
