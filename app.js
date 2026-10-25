@@ -84,6 +84,16 @@
     if(app.radius) document.documentElement.style.setProperty("--radius", app.radius + "px");
     return merged;
   }
+  // Mobile menu toggle (fixes sticky header on mobile)
+    var menuBtn=document.getElementById('menuBtn'), navLinks=document.getElementById('navLinks');
+    if(menuBtn && navLinks){
+      menuBtn.addEventListener('click', function(){
+        var open=navLinks.classList.toggle('open');
+        menuBtn.setAttribute('aria-expanded', open);
+        menuBtn.textContent=open?'✕':'☰';
+      });
+      navLinks.querySelectorAll('a').forEach(function(a){ a.addEventListener('click', function(){ navLinks.classList.remove('open'); menuBtn.textContent='☰'; }); });
+    }
   // Site behaviour: reveal, FAQ, counters
   document.addEventListener("DOMContentLoaded", function(){
     applyTheme(getTheme());

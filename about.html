@@ -99,8 +99,9 @@ h1,h2,h3{line-height:1.15}
 .bar{flex:1;height:8px;background:rgba(255,255,255,.14);border-radius:99px;overflow:hidden}
 .bar i{display:block;height:100%;background:var(--grad);border-radius:99px;animation:fill 1.4s ease both}
 @keyframes fill{from{width:0}to{width:var(--w,80%)}}
-.marquee{background:var(--deep);color:#fff;padding:14px 0;overflow:hidden;white-space:nowrap;font-weight:800;letter-spacing:.04em}
-.marquee span{display:inline-block;animation:scroll 22s linear infinite}
+.marquee{background:var(--deep);color:#fff;padding:14px 0;overflow:hidden;font-weight:800;letter-spacing:.04em}
+.marquee-inner{display:flex;width:max-content;animation:scroll 22s linear infinite}
+.marquee-track{display:flex;align-items:center;flex:none}
 @keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 
 /* Sections */
@@ -143,9 +144,9 @@ h1,h2,h3{line-height:1.15}
 .reveal.in{opacity:1;transform:none}
 .float-cta{position:fixed;right:18px;bottom:18px;z-index:90;background:var(--grad);color:#fff;padding:13px 20px;border-radius:999px;font-weight:800;box-shadow:0 12px 30px rgba(0,0,0,.25)}
 .float-cta:hover{text-decoration:none}
-@media(max-width:920px){.hero-grid{grid-template-columns:1fr}.grid-3,.grid-4{grid-template-columns:repeat(2,1fr)}.nav-links{display:none}}
+@media(max-width:920px){.hero-grid{grid-template-columns:1fr}.grid-3,.grid-4{grid-template-columns:repeat(2,1fr)}.nav-links{display:none;position:absolute;top:100%;left:0;right:0;background:var(--surface);flex-direction:column;padding:18px 22px;gap:14px;border-bottom:1px solid var(--line);box-shadow:var(--shadow);z-index:90}.nav-links.open{display:flex}.menu-btn{display:block}}
 @media(max-width:640px){.grid-3,.grid-4{grid-template-columns:1fr}.section{padding:54px 0}.hero{padding:54px 0 50px}.footer-grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
-@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.marquee span,.hero::after,.bar i{animation:none}}
+@media(prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none;transition:none}.marquee-inner,.hero::after,.bar i{animation:none}}
 
 /* Admin */
 .admin-wrap{max-width:1080px;margin:0 auto;padding:28px 22px 60px}
@@ -397,6 +398,34 @@ h1,h2,h3{line-height:1.15}
 .audit-list span{color:var(--muted);font-size:14.5px}
 @media(max-width:640px){.marquee-item{margin-right:28px}.topbar{font-size:12.5px}}
 
+/* Mobile menu + sticky header fix */
+.site-header{position:sticky;top:0;z-index:80}
+.nav{position:relative;flex-wrap:wrap}
+.menu-btn{display:none;background:var(--alt);border:1px solid var(--line);border-radius:10px;width:44px;height:44px;font-size:20px;cursor:pointer;color:var(--ink)}
+.nav-cta{display:flex;align-items:center;gap:10px}
+@media(max-width:640px){
+  .logo{font-size:17px}
+  .topbar .wrap{justify-content:center;text-align:center}
+  .site-header .wrap{padding:0 14px}
+  .nav{padding:10px 0}
+  .btn-sm{padding:9px 16px;font-size:13px}
+  .hero{padding:48px 0 44px}
+}
+/* Admin tabs (WordPress-style, easier) */
+.admin-tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+.admin-tab-btn{padding:11px 18px;border-radius:999px;border:1.5px solid var(--line);background:var(--surface);font-weight:800;cursor:pointer;color:var(--ink)}
+.admin-tab-btn.active{background:var(--grad);color:#fff;border-color:transparent}
+.admin-tab{display:none}
+.admin-tab.active{display:block}
+.admin-table{width:100%;border-collapse:collapse}
+.admin-table td{padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.admin-table input,.admin-table textarea{width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--surface);color:var(--ink);font:inherit}
+.blog-editor textarea{min-height:220px}
+.seo-score{font-weight:800;font-size:20px}
+.seo-check{list-style:none;margin-top:12px}
+.seo-check li{padding:6px 0;color:var(--muted)}
+.seo-check li.ok{color:#15803D;font-weight:700}
+
 </style>
 <script>
 // Ali Baba Marketing Pro V5 — theme + content store (staging prototype).
@@ -485,6 +514,16 @@ h1,h2,h3{line-height:1.15}
     if(app.radius) document.documentElement.style.setProperty("--radius", app.radius + "px");
     return merged;
   }
+  // Mobile menu toggle (fixes sticky header on mobile)
+    var menuBtn=document.getElementById('menuBtn'), navLinks=document.getElementById('navLinks');
+    if(menuBtn && navLinks){
+      menuBtn.addEventListener('click', function(){
+        var open=navLinks.classList.toggle('open');
+        menuBtn.setAttribute('aria-expanded', open);
+        menuBtn.textContent=open?'✕':'☰';
+      });
+      navLinks.querySelectorAll('a').forEach(function(a){ a.addEventListener('click', function(){ navLinks.classList.remove('open'); menuBtn.textContent='☰'; }); });
+    }
   // Site behaviour: reveal, FAQ, counters
   document.addEventListener("DOMContentLoaded", function(){
     applyTheme(getTheme());
@@ -563,4 +602,4 @@ h1,h2,h3{line-height:1.15}
 })();
 
 </script>
-</head><body><header class="site-header"><div class="wrap nav"><a class="logo" href="index.html"><span class="logo-mark">AB</span>Ali Baba <span class="grad">Marketing Pro</span></a><nav class="nav-links"><a href="index.html">Home</a><a href="about.html">About</a><a href="services.html">Services</a><a href="industries.html">Industries</a><a href="portfolio.html">Portfolio</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></nav><a class="btn btn-primary btn-sm" href="contact.html">Book a Free Audit</a></div></header><main><section class="page-hero"><div class="wrap reveal"><span class="tag">About Us</span><h1>The Agency Behind Brands That <span class='grad'>Refuse to Blend In</span></h1><p class="lead">Great products were losing online to louder, weaker competitors. We exist to fix that — with strategy, creative and consistency.</p><div class="crumbs"><a href="index.html">Home</a> › About Us</div></div></section><section class="section"><div class="wrap two-col"><div class="reveal"><span class="tag">Our Story</span><h2>From Freelance Hustle to a Full Growth Team</h2><p>We started where many of our clients are today: helping online stores sell through social media, one reel and one ad at a time. The work grew because the approach worked — understand the customer deeply, create content they genuinely enjoy, and measure everything against sales.</p><p>Today we serve brands in Pakistan, the US and beyond, with a special focus on e-commerce and DTC brands in fashion, beauty, jewelry and lifestyle.</p></div><div class="reveal"><div class="hero-panel"><div class="panel-head"><span>At a Glance</span></div><div class="panel-row"><span>Core services</span><b>9</b></div><div class="panel-row"><span>Industries</span><b>8+</b></div><div class="panel-row"><span>Response time</span><b>Within 24 hours</b></div></div></div></div></section><section class="section dark"><div class="wrap"><div class="section-head reveal"><span class="tag">Mission &amp; Values</span><h2>What We Believe</h2></div><div class="grid grid-3"><article class="card reveal" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15)"><h3>Honesty First</h3><p>If a channel won't work for your product, we say so before you spend — not after. No fake guarantees, ever.</p></article><article class="card reveal" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15)"><h3>Original, Always</h3><p>Every script, design and campaign is created for your brand. We study competitors; we never copy them.</p></article><article class="card reveal" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15)"><h3>Data Decides</h3><p>Opinions start campaigns; numbers finish the argument. We test, measure and double down on winners.</p></article></div></div></section><section class="section"><div class="wrap"><div class="cta reveal"><h2>Let's Build a Brand Customers Can't Ignore</h2><p>Tell us about your product and goals. We reply within 24 hours with honest advice and a clear plan.</p><div class="cta-actions"><a class="btn" style="background:#fff;color:var(--deep)" href="contact.html">Book a Free Audit</a><a class="btn btn-ghost" style="border-color:#fff;color:#fff" href="services.html">Explore Services</a></div></div></div></section></main><footer class="site-footer"><div class="wrap"><div class="footer-grid"><div><a class="logo" style="color:#fff" href="index.html"><span class="logo-mark">AB</span>Ali Baba Marketing Pro</a><p style="margin-top:14px">A growth-first agency helping brands turn attention into customers.</p><p>✉ alibabamarketing1@gmail.com<br>WhatsApp: 0316-4324778</p></div><div><h4>Pages</h4><ul><li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="services.html">Services</a></li><li><a href="blog.html">Blog</a></li></ul></div><div><h4>Services</h4><ul><li>Social Media</li><li>Performance Ads</li><li>Reels</li><li>Branding</li></ul></div><div><h4>Contact</h4><ul><li>Lahore, Pakistan</li><li>Serving worldwide</li><li>Mon–Sat, 9am–7pm PKT</li></ul></div></div><div class="copyright">© 2026 Ali Baba Marketing Pro — V5 staging preview, Black + Lime default. Live site untouched.</div></div></footer><a class="float-cta" href="contact.html">Free Audit →</a></body></html>
+</head><body><header class="site-header"><div class="wrap nav"><a class="logo" href="index.html"><span class="logo-mark">AB</span>Ali Baba <span class="grad">Marketing Pro</span></a><nav class="nav-links" id="navLinks"><a href="index.html">Home</a><a href="about.html">About</a><a href="services.html">Services</a><a href="industries.html">Industries</a><a href="portfolio.html">Portfolio</a><a href="blog.html">Blog</a><a href="contact.html">Contact</a></nav><a class="btn btn-primary btn-sm" href="contact.html">Book a Free Audit</a><button class="menu-btn" id="menuBtn" aria-label="Open menu" aria-expanded="false">☰</button></div></header><main><section class="page-hero"><div class="wrap reveal"><span class="tag">About Us</span><h1>The Agency Behind Brands That <span class='grad'>Refuse to Blend In</span></h1><p class="lead">Great products were losing online to louder, weaker competitors. We exist to fix that — with strategy, creative and consistency.</p><div class="crumbs"><a href="index.html">Home</a> › About Us</div></div></section><section class="section"><div class="wrap two-col"><div class="reveal"><span class="tag">Our Story</span><h2>From Freelance Hustle to a Full Growth Team</h2><p>We started where many of our clients are today: helping online stores sell through social media, one reel and one ad at a time. The work grew because the approach worked — understand the customer deeply, create content they genuinely enjoy, and measure everything against sales.</p><p>Today we serve brands in Pakistan, the US and beyond, with a special focus on e-commerce and DTC brands in fashion, beauty, jewelry and lifestyle.</p></div><div class="reveal"><div class="hero-panel"><div class="panel-head"><span>At a Glance</span></div><div class="panel-row"><span>Core services</span><b>9</b></div><div class="panel-row"><span>Industries</span><b>8+</b></div><div class="panel-row"><span>Response time</span><b>Within 24 hours</b></div></div></div></div></section><section class="section dark"><div class="wrap"><div class="section-head reveal"><span class="tag">Mission &amp; Values</span><h2>What We Believe</h2></div><div class="grid grid-3"><article class="card reveal" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15)"><h3>Honesty First</h3><p>If a channel won't work for your product, we say so before you spend — not after. No fake guarantees, ever.</p></article><article class="card reveal" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15)"><h3>Original, Always</h3><p>Every script, design and campaign is created for your brand. We study competitors; we never copy them.</p></article><article class="card reveal" style="background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15)"><h3>Data Decides</h3><p>Opinions start campaigns; numbers finish the argument. We test, measure and double down on winners.</p></article></div></div></section><section class="section"><div class="wrap"><div class="cta reveal"><h2>Let's Build a Brand Customers Can't Ignore</h2><p>Tell us about your product and goals. We reply within 24 hours with honest advice and a clear plan.</p><div class="cta-actions"><a class="btn" style="background:#fff;color:var(--deep)" href="contact.html">Book a Free Audit</a><a class="btn btn-ghost" style="border-color:#fff;color:#fff" href="services.html">Explore Services</a></div></div></div></section></main><footer class="site-footer"><div class="wrap"><div class="footer-grid"><div><a class="logo" style="color:#fff" href="index.html"><span class="logo-mark">AB</span>Ali Baba Marketing Pro</a><p style="margin-top:14px">A growth-first agency helping brands turn attention into customers.</p><p>✉ alibabamarketing1@gmail.com<br>WhatsApp: 0316-4324778</p></div><div><h4>Pages</h4><ul><li><a href="index.html">Home</a></li><li><a href="about.html">About</a></li><li><a href="services.html">Services</a></li><li><a href="blog.html">Blog</a></li></ul></div><div><h4>Services</h4><ul><li>Social Media</li><li>Performance Ads</li><li>Reels</li><li>Branding</li></ul></div><div><h4>Contact</h4><ul><li>Lahore, Pakistan</li><li>Serving worldwide</li><li>Mon–Sat, 9am–7pm PKT</li></ul></div></div><div class="copyright">© 2026 Ali Baba Marketing Pro — V5 staging preview, Black + Lime default. Live site untouched.</div></div></footer><a class="float-cta" href="contact.html">Free Audit →</a></body></html>
