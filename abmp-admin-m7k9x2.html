@@ -566,21 +566,22 @@ h1,h2,h3{line-height:1.15}
 <div class="admin-tabs" role="tablist">
 <button class="admin-tab-btn active" data-tab="tab-appearance">Appearance &amp; Content</button>
 <button class="admin-tab-btn" data-tab="tab-pages">Pages</button>
+<button class="admin-tab-btn" data-tab="tab-sections">Sections &amp; Lines (Drag &amp; Drop)</button>
 <button class="admin-tab-btn" data-tab="tab-services">Services &amp; Work</button>
 <button class="admin-tab-btn" data-tab="tab-blog">Blog Writer + SEO</button>
 <button class="admin-tab-btn" data-tab="tab-leads">Leads</button>
 <button class="admin-tab-btn" data-tab="tab-settings">Settings</button>
 </div>
-<p style="color:var(--muted);margin-bottom:18px">WordPress jaisa, lekin us se easy: Pages, Blog, Appearance aur Settings — sab ek jagah, koi plugin ya database setup nahi. Save karte hi is browser me site update ho jati hai. Sab visitors ke liye permanent update ke liye Supabase wiring agla step hai, jo ShopNest me hai.</p>
+<p style="color:var(--muted);margin-bottom:18px">Like WordPress, but easier: Pages, Blog, Appearance, and Settings — all in one place, with no plugin or database setup. When you save, the site updates in this browser. For a permanent update for all visitors, the next step is Supabase wiring, as used in ShopNest.</p>
 <div id="tab-appearance" class="admin-tab active">
 
-<div class="admin-note"><b>Staging admin, secret jaisa hi rakha hai:</b> is file ka public site par koi link nahi hai, bilkul ShopNest ke secret admin paths ki tarah. Yahan se palette badalte hi homepage ka look badal jayega. Is prototype me change isi browser me save hota hai. Permanent version me yehi setting Supabase me jayegi, taake har visitor ko wahi palette dikhe.</div>
+<div class="admin-note"><b>Secret admin, kept private:</b> this file has no link on the public site, just like the secret ShopNest admin paths. When you change a palette here, the homepage look changes. In this prototype, the change is saved in this browser. In the permanent version, the same setting will go to Supabase, so every visitor sees the same palette.</div>
 
-<section class="admin-card"><h2>1. Branding Palettes — sab 35 yahan hain</h2><p>Kisi bhi palette par click karein, active ho jayegi. Neeche live preview bhi update ho jayega.</p>
+<section class="admin-card"><h2>1. Branding Palettes — all 35 are here</h2><p>Click any palette to make it active. The live preview below will update too.</p>
 <div class="palette-grid">
 <div class="palette" data-palette="navy-cyan"><div class="swatches"><i style="background:#0A2540"></i><i style="background:#2563EB"></i><i style="background:#22D3EE"></i></div><b>1. Navy + Cyan</b><small>Trust + tech feel. Current brand ka refined version.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="black-lime"><div class="swatches"><i style="background:#0B0F14"></i><i style="background:#16A34A"></i><i style="background:#BFFF3C"></i></div><b>2. Black + Lime</b><small>Modern startup, growth aur money feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="midnight-orange"><div class="swatches"><i style="background:#171321"></i><i style="background:#EA580C"></i><i style="background:#FFB020"></i></div><b>3. Midnight + Orange</b><small>Bold agency, CTA par sab se zyada action feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-palette="black-lime"><div class="swatches"><i style="background:#0B0F14"></i><i style="background:#16A34A"></i><i style="background:#BFFF3C"></i></div><b>2. Black + Lime</b><small>Modern startup, growth and money feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-palette="midnight-orange"><div class="swatches"><i style="background:#171321"></i><i style="background:#EA580C"></i><i style="background:#FFB020"></i></div><b>3. Midnight + Orange</b><small>Bold agency, with the most action feel on CTAs.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
 <div class="palette" data-palette="teal-white"><div class="swatches"><i style="background:#063B3A"></i><i style="background:#14B8A6"></i><i style="background:#5EEAD4"></i></div><b>4. Teal + White</b><small>Premium clean, corporate clients ke liye.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
 <div class="palette" data-palette="navy-gold"><div class="swatches"><i style="background:#0A2540"></i><i style="background:#B9975B"></i><i style="background:#C9A227"></i></div><b>5. Navy + Gold</b><small>Premium agency feel, purane purple/gold look se alag.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
 
@@ -595,13 +596,13 @@ h1,h2,h3{line-height:1.15}
 <div class="palette" data-palette="forest-premium"><div class="swatches"><i style="background:#12291A"></i><i style="background:#14532D"></i><i style="background:#C9A227"></i></div><b>14. Forest Premium</b><small>Premium consultancy deep green + gold.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
 <div class="palette" data-palette="slate-modern"><div class="swatches"><i style="background:#0F172A"></i><i style="background:#334155"></i><i style="background:#38BDF8"></i></div><b>15. Slate Modern</b><small>Minimal agency slate + sky, corporate clean.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
 
-<div class="palette" data-palette="blush-rose"><div class="swatches"><i style="background:#4A2530"></i><i style="background:#C4707F"></i><i style="background:#F9C5CC"></i></div><b>16. Blush Rose</b><small>Soft pink, gentle aur feminine premium feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="sky-pastel"><div class="swatches"><i style="background:#2C4A6B"></i><i style="background:#6FA8D8"></i><i style="background:#CDE8FA"></i></div><b>17. Sky Pastel</b><small>Soft light blue, calm aur trustworthy feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-palette="blush-rose"><div class="swatches"><i style="background:#4A2530"></i><i style="background:#C4707F"></i><i style="background:#F9C5CC"></i></div><b>16. Blush Rose</b><small>Soft pink, gentle and feminine premium feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-palette="sky-pastel"><div class="swatches"><i style="background:#2C4A6B"></i><i style="background:#6FA8D8"></i><i style="background:#CDE8FA"></i></div><b>17. Sky Pastel</b><small>Soft light blue, calm and trustworthy feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
 <div class="palette" data-palette="lavender-mist"><div class="swatches"><i style="background:#4B3A6B"></i><i style="background:#9B8AC4"></i><i style="background:#E4D9F5"></i></div><b>18. Lavender Mist</b><small>Soft lavender, dreamy creative feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="mint-cream"><div class="swatches"><i style="background:#2F4F3E"></i><i style="background:#7FBF9A"></i><i style="background:#D9F0DF"></i></div><b>19. Mint Cream</b><small>Soft mint, fresh aur clean feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="peach-glow"><div class="swatches"><i style="background:#5B3E2E"></i><i style="background:#E0A184"></i><i style="background:#FDE0CC"></i></div><b>20. Peach Glow</b><small>Soft peach, warm aur friendly feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-palette="mint-cream"><div class="swatches"><i style="background:#2F4F3E"></i><i style="background:#7FBF9A"></i><i style="background:#D9F0DF"></i></div><b>19. Mint Cream</b><small>Soft mint, fresh and clean feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-palette="peach-glow"><div class="swatches"><i style="background:#5B3E2E"></i><i style="background:#E0A184"></i><i style="background:#FDE0CC"></i></div><b>20. Peach Glow</b><small>Soft peach, warm and friendly feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
 <div class="palette" data-palette="butter-lemon"><div class="swatches"><i style="background:#5B552A"></i><i style="background:#C9B458"></i><i style="background:#F7EEC0"></i></div><b>21. Butter Lemon</b><small>Soft yellow cream, cheerful lekin halka feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
-<div class="palette" data-palette="sage-calm"><div class="swatches"><i style="background:#3E4F38"></i><i style="background:#8AA87F"></i><i style="background:#DEEAD6"></i></div><b>22. Sage Calm</b><small>Soft sage green, calm aur natural feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
+<div class="palette" data-palette="sage-calm"><div class="swatches"><i style="background:#3E4F38"></i><i style="background:#8AA87F"></i><i style="background:#DEEAD6"></i></div><b>22. Sage Calm</b><small>Soft sage green, calm and natural feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
 <div class="palette" data-palette="powder-blue"><div class="swatches"><i style="background:#3A4F66"></i><i style="background:#8FB3CC"></i><i style="background:#DCEAF3"></i></div><b>23. Powder Blue</b><small>Soft powder blue, elegant corporate feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
 <div class="palette" data-palette="lilac-grey"><div class="swatches"><i style="background:#4A4557"></i><i style="background:#A39AB5"></i><i style="background:#E5E1EC"></i></div><b>24. Lilac Grey</b><small>Soft muted lilac, modern minimal feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
 <div class="palette" data-palette="sand-beige"><div class="swatches"><i style="background:#54462F"></i><i style="background:#B79F78"></i><i style="background:#EDE2CC"></i></div><b>25. Sand Beige</b><small>Soft warm sand, luxury boutique feel.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
@@ -618,7 +619,7 @@ h1,h2,h3{line-height:1.15}
 <div class="palette" data-palette="health-vitality"><div class="swatches"><i style="background:#14532D"></i><i style="background:#15803D"></i><i style="background:#84CC16"></i></div><b>35. Health Vitality</b><small>For: Health / fitness. Fresh green, energy + wellbeing.</small><br><br><button class="btn btn-primary btn-sm palette-apply">Apply this palette</button></div>
 </div></section>
 
-<section class="admin-card"><h2>2. Content Edit</h2><p>Hero aur contact details yahan se change karein. Save dabate hi homepage update ho jayega.</p>
+<section class="admin-card"><h2>2. Content Edit</h2><p>Change the hero and contact details here. As soon as you press Save, the homepage updates.</p>
 <div class="form-grid">
 <label>Hero Title<input id="fHeroTitle" type="text"></label>
 <label>Hero Subtitle<input id="fHeroSub" type="text"></label>
@@ -628,40 +629,40 @@ h1,h2,h3{line-height:1.15}
 <label>Card Corner Radius (px)<select id="fRadius"><option value="14">14 — sharp</option><option value="18">18</option><option value="20" selected>20 — default</option><option value="24">24 — soft</option><option value="28">28 — fully soft</option></select></label>
 </div><br>
 <div class="toggle-list">
-<label><input type="checkbox" data-section-toggle="hero" checked> Hero section show karein</label>
-<label><input type="checkbox" data-section-toggle="services" checked> Services section show karein</label>
-<label><input type="checkbox" data-section-toggle="process" checked> Process section show karein</label>
-<label><input type="checkbox" data-section-toggle="industries" checked> Industries section show karein</label>
-<label><input type="checkbox" data-section-toggle="faq" checked> FAQ section show karein</label>
-<label><input type="checkbox" data-section-toggle="final-cta" checked> Final CTA show karein</label>
+<label><input type="checkbox" data-section-toggle="hero" checked> Show hero section</label>
+<label><input type="checkbox" data-section-toggle="services" checked> Show services section</label>
+<label><input type="checkbox" data-section-toggle="process" checked> Show process section</label>
+<label><input type="checkbox" data-section-toggle="industries" checked> Show industries section</label>
+<label><input type="checkbox" data-section-toggle="faq" checked> Show FAQ section</label>
+<label><input type="checkbox" data-section-toggle="final-cta" checked> Show final CTA</label>
 </div><br>
 <button class="btn btn-primary" id="saveContent">Save All Changes</button>
 <button class="btn btn-ghost" id="resetAll" style="margin-left:10px">Reset to Default</button>
 <p id="saveMsg" style="margin-top:14px;font-weight:700"></p>
 </section>
 
-<section class="admin-card"><h2>3. Live Preview</h2><p>Palette change karne par ye preview bhi refresh hoga. Jo palette yahan achi lage, wohi final rakh lena.</p>
+<section class="admin-card"><h2>3. Live Preview</h2><p>When you change a palette, this preview will refresh too. If a palette looks good here, keep that one as final.</p>
 <iframe id="previewFrame" class="preview-frame" src="index.html" title="Ali Baba Marketing Pro V5 preview"></iframe>
 </section>
 
-<section class="admin-card"><h2>Next step, live se pehle</h2><p>1) Aap palette + content final karein &nbsp; 2) Main yehi theme system baqi 8 pages par lagaoon &nbsp; 3) Supabase wiring karoon taake admin change sab visitors ko dikhe &nbsp; 4) Aap approve karein, tab hi live site update hogi.</p></section>
+<section class="admin-card"><h2>Next step, before going live</h2><p>1) You finalise the palette and content &nbsp; 2) I apply the same theme system to the other 8 pages &nbsp; 3) I wire Supabase so admin changes show to all visitors &nbsp; 4) You approve, and only then the live site updates.</p></section>
 
 </div>
 <div id="tab-pages" class="admin-tab">
-<section class="admin-card"><h2>Pages — har page edit karein</h2><p>Har page ka title aur description yahan se change karein. Save ke baad is browser me wo page update ho jayega.</p>
+<section class="admin-card"><h2>Pages — edit every page</h2><p>Change the title and description of every page here. After you save, that page updates in this browser.</p>
 <table class="admin-table" id="pagesTable"></table>
 <button class="btn btn-primary" id="savePages">Save Pages</button><p id="pagesMsg" style="margin-top:12px;font-weight:700"></p></section>
-<section class="admin-card"><h2>Sections — har section show / hide karein</h2><p>Homepage ke sections ko on/off karein. Yehi control pehle Content Edit me tha, ab Pages tab me bhi hai.</p><p>Sections: Hero, Marquee, Platforms, Work Done, What We Will Do, Services, Journey, Audit, Pakistan, Industries, Process, FAQ, Final CTA.</p></section>
+<section class="admin-card"><h2>Sections — show or hide every section</h2><p>Turn homepage sections on or off. This control was in Content Edit before, and is also in the Pages tab now.</p><p>Sections: Hero, Marquee, Platforms, Work Done, What We Will Do, Services, Journey, Audit, Pakistan, Industries, Process, FAQ, Final CTA.</p></section>
 </div>
 <div id="tab-services" class="admin-tab">
-<section class="admin-card"><h2>Services &amp; Work — har service edit karein</h2><p>Service ka naam aur short description change karein, nayi service add karein, ya delete karein.</p>
+<section class="admin-card"><h2>Services &amp; Work — edit every service</h2><p>Change the name and short description of a service, add a new service, or delete one.</p>
 <div id="servicesEditor"></div>
 <button class="btn btn-primary" id="addService">+ Add New Service</button>
 <button class="btn btn-primary" id="saveServices" style="margin-left:10px">Save Services</button><p id="servicesMsg" style="margin-top:12px;font-weight:700"></p></section>
-<section class="admin-card"><h2>Work Done — portfolio items</h2><p>Portfolio page ke 6 systems yahan se edit hote hain: Fashion Reel System, AI Influencer Brand, DTC Launch Campaign, Travel Booking Funnel, Beauty Trust Content, Brand Identity Kits. Naya item add karne ke liye Services tab ki tarah hi naam aur description likhein, phir Save karein.</p></section>
+<section class="admin-card"><h2>Work Done — portfolio items</h2><p>The 6 systems on the portfolio page can be edited here: Fashion Reel System, AI Influencer Brand, DTC Launch Campaign, Travel Booking Funnel, Beauty Trust Content, Brand Identity Kits. To add a new item, write a name and description like in the Services tab, then press Save.</p></section>
 </div>
 <div id="tab-blog" class="admin-tab">
-<section class="admin-card"><h2>Blog Writer — poora tool, SEO ke hisaab se</h2><p>WordPress ke editor jaisa, lekin simple: title likhein, slug khud ban jayega, description aur keywords likhein, phir article likhein. Neeche live SEO score dikhega.</p>
+<section class="admin-card"><h2>Blog Writer — full tool, built for SEO</h2><p>Like a WordPress editor, but simpler: write a title, the slug is made for you, write a description and keywords, then write the article. A live SEO score shows below.</p>
 <div class="form-grid blog-editor">
 <label>Blog Title<input id="blogTitle" type="text" placeholder="e.g. 7 Reel Hooks That Stop the Scroll"></label>
 <label>Slug (auto)<input id="blogSlug" type="text" placeholder="7-reel-hooks-that-stop-the-scroll"></label>
@@ -670,7 +671,7 @@ h1,h2,h3{line-height:1.15}
 <label>Category<select id="blogCat"><option>Reels</option><option>Ads</option><option>SEO</option><option>Strategy</option><option>E-commerce</option></select></label>
 <label>Featured Image URL (optional)<input id="blogImage" type="text" placeholder="https://..."></label>
 </div><br>
-<label style="font-weight:700;display:block;margin-bottom:8px">Article Content — headings ke liye line ke start me # likhein, jaise # My Heading</label>
+<label style="font-weight:700;display:block;margin-bottom:8px">Article Content — for a heading, start a line with #, like # My Heading</label>
 <textarea id="blogContent" style="width:100%;min-height:240px;padding:14px;border:1.5px solid var(--line);border-radius:12px;font:inherit" placeholder="Write your blog here in easy English..."></textarea>
 <div style="margin-top:16px;background:var(--bg);border:1px solid var(--line);border-radius:14px;padding:16px">
 <div>SEO Score: <span class="seo-score" id="seoScore">0 / 100</span></div>
@@ -685,7 +686,7 @@ h1,h2,h3{line-height:1.15}
 </section>
 </div>
 <div id="tab-leads" class="admin-tab">
-<section class="admin-card"><h2>Leads — enquiries</h2><p>Live website se form submissions seedha aap ke email par jati hain (Web3Forms). Is admin me leads ka inbox is liye hai taake aap yahan bhi notes rakh sakein: naam, phone, WhatsApp, service, aur status (New / Contacted / Client / Closed).</p>
+<section class="admin-card"><h2>Leads — enquiries</h2><p>Form submissions from the live website go straight to your email (Web3Forms). The leads inbox in this admin is here so you can also keep notes here: name, phone, WhatsApp, service, and status (New / Contacted / Client / Closed).</p>
 <div class="form-grid">
 <label>Lead Name<input id="leadName" type="text" placeholder="e.g. Ali Raza"></label>
 <label>Phone / WhatsApp<input id="leadPhone" type="text" placeholder="03xx-xxxxxxx"></label>
@@ -694,11 +695,11 @@ h1,h2,h3{line-height:1.15}
 </div><br>
 <button class="btn btn-primary" id="addLead">Add Lead</button>
 <div id="leadsList" style="margin-top:18px"></div>
-<p style="color:var(--muted);margin-top:12px">Permanent leads inbox (jo har device par dikhe) ke liye Supabase wiring chahiye, jo ShopNest me hai. Tab tak live form ka email hi asli record hai.</p>
+<p style="color:var(--muted);margin-top:12px">For a permanent leads inbox (that shows on every device), Supabase wiring is needed, as in ShopNest. Until then, the live form email is the real record.</p>
 </section>
 </div>
 <div id="tab-settings" class="admin-tab">
-<section class="admin-card"><h2>Settings — site ki basic cheezein</h2><p>Ye settings is browser me save hoti hain. Site ka naam, email, WhatsApp, phone, timings, aur social links yahan se change karein.</p>
+<section class="admin-card"><h2>Settings — basic site details</h2><p>These settings are saved in this browser. Change the site name, email, WhatsApp, phone, timings, and social links here.</p>
 <div class="form-grid">
 <label>Site Name<input id="setSiteName" type="text" value="Ali Baba Marketing Pro"></label>
 <label>Email<input id="setEmail" type="text" value="alibabamarketing1@gmail.com"></label>
@@ -708,8 +709,38 @@ h1,h2,h3{line-height:1.15}
 <label>Instagram URL<input id="setIg" type="text" placeholder="https://instagram.com/..."></label>
 </div><br>
 <button class="btn btn-primary" id="saveSettings">Save Settings</button><p id="settingsMsg" style="margin-top:12px;font-weight:700"></p>
-<p style="color:var(--muted)">Admin passcode change karne ke liye mujhe naya passcode batayein, main gate update kar doon ga. Current passcode aap ko pehle chat me diya gaya tha.</p>
+<p style="color:var(--muted)">To change the admin passcode, tell me the new passcode and I will update the gate. The current passcode was given to you earlier in chat.</p>
 </section>
+</div>
+
+
+<div id="tab-sections" class="admin-tab">
+<section class="admin-card"><h2>Sections &amp; Lines — drag and drop, like the ShopNest store admin</h2>
+<p>Every homepage section is listed here. Drag the ☰ handle to move a section up or down, or use the Up / Down buttons. Edit the title, subtitle, and every line below it. Turn a section off with the Visible checkbox. Save at the bottom.</p>
+<div id="sectionsEditor"></div>
+<button class="btn btn-primary" id="saveSections">Save Sections Order &amp; Text</button>
+<button class="btn btn-ghost" id="resetSections" style="margin-left:10px">Reset to Default</button>
+<p id="sectionsMsg" style="margin-top:12px;font-weight:700"></p></section>
+<section class="admin-card"><h2>Hero Lines — edit every line</h2>
+<div class="form-grid">
+<label>Hero Title<input id="heroTitleLine" type="text" value="We Turn Scrolls Into Sales"></label>
+<label>Hero Subtitle<input id="heroSubLine" type="text" value="Simple, clear marketing for Pakistani businesses — no hard words, no confusion."></label>
+<label>Hero Button 1<input id="heroCta1" type="text" value="Get Your Free Audit"></label>
+<label>Hero Button 2<input id="heroCta2" type="text" value="See Our Services"></label>
+<label>Hero Image URL<input id="heroImageLine" type="text" value="https://images.unsplash.com/photo-1552664730-d307ca884978?w=1600&q=80&auto=format&fit=crop"></label>
+</div><br><button class="btn btn-primary" id="saveHeroLines">Save Hero Lines</button><p id="heroMsg" style="margin-top:12px;font-weight:700"></p></section>
+<section class="admin-card"><h2>Cards — edit every card, every line, with drag and drop</h2>
+<p>Choose a group, then drag cards to reorder them, edit the title, description, and image URL, or add / delete a card. This is the same idea as the ShopNest homepage builder.</p>
+<label>Card Group<select id="cardGroup" style="width:100%;padding:11px;border:1.5px solid var(--line);border-radius:10px;margin:10px 0"><option value="services">Services (9)</option><option value="platforms">Platforms (7)</option><option value="work">Work Done (6)</option><option value="industries">Industries (8)</option></select></label>
+<div id="cardsEditor"></div>
+<button class="btn btn-primary" id="addCard">+ Add Card</button>
+<button class="btn btn-primary" id="saveCards" style="margin-left:10px">Save Cards</button>
+<p id="cardsMsg" style="margin-top:12px;font-weight:700"></p></section>
+<section class="admin-card"><h2>Export Your Edits — send them to me for a permanent live update</h2>
+<p>Because this is a static site, admin edits save in this browser first. Click Export, copy the file, and send it to me in chat. I will apply it to the live site and push it, so every visitor sees it. This is the bridge until Supabase wiring is done.</p>
+<button class="btn btn-primary" id="exportEdits">Export Edits (Download JSON)</button>
+<button class="btn btn-ghost" id="copyEdits" style="margin-left:10px">Copy JSON to Clipboard</button>
+<p id="exportMsg" style="margin-top:12px;font-weight:700"></p></section>
 </div>
 
 </main>
@@ -836,7 +867,7 @@ h1,h2,h3{line-height:1.15}
   var addLead=document.getElementById('addLead');
   if(addLead) addLead.addEventListener('click', function(){
     var name=document.getElementById('leadName').value.trim(), phone=document.getElementById('leadPhone').value.trim();
-    if(!name){ alert('Please add lead name'); return; }
+    if(!name){ alert('Please add a lead name'); return; }
     var leads=readLS('abmp_leads', []);
     leads.unshift({name:name, phone:phone, service:document.getElementById('leadService').value, status:document.getElementById('leadStatus').value});
     saveLS('abmp_leads', leads); renderLeads();
@@ -846,6 +877,124 @@ h1,h2,h3{line-height:1.15}
   if(saveSet) saveSet.addEventListener('click', function(){
     saveLS('abmp_settings', {site:document.getElementById('setSiteName').value, email:document.getElementById('setEmail').value, whatsapp:document.getElementById('setWhatsapp').value, phone:document.getElementById('setPhone').value, fb:document.getElementById('setFb').value, ig:document.getElementById('setIg').value});
     document.getElementById('settingsMsg').textContent='✓ Settings saved in this browser.';
+  });
+})();
+</script>
+
+
+<script>
+(function(){
+  function readLS(k, fb){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):fb; }catch(e){ return fb; } }
+  function saveLS(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+  var DEFAULT_SECTIONS = [
+    {id:'hero', title:'Hero', subtitle:'We Turn Scrolls Into Sales', visible:true},
+    {id:'marquee', title:'Service Marquee', subtitle:'Icons for 9 services under the hero', visible:true},
+    {id:'pain', title:'Problems We Fix', subtitle:'Random Posting, No Funnel, Weak Website', visible:true},
+    {id:'services', title:'Services', subtitle:'9 services, one connected system', visible:true},
+    {id:'platforms', title:'Platforms', subtitle:'Facebook, Instagram, TikTok, Google, YouTube', visible:true},
+    {id:'work', title:'What We Have Done', subtitle:'E-commerce stores, product and service websites', visible:true},
+    {id:'willdo', title:'What We Will Do For You', subtitle:'Audit, Plan, Build, Grow', visible:true},
+    {id:'journey', title:'Growth Journey', subtitle:'Get Found, Get Chosen, Keep Customers', visible:true},
+    {id:'audit', title:'Free Audit Checklist', subtitle:'5-second test, mobile, WhatsApp, top 3 fixes', visible:true},
+    {id:'pakistan', title:'Made for Pakistani Businesses', subtitle:'Small shops and Instagram sellers', visible:true},
+    {id:'industries', title:'Industries', subtitle:'8 industry playbooks', visible:true},
+    {id:'process', title:'Process', subtitle:'Audit, Plan, Create, Launch, Grow', visible:true},
+    {id:'faq', title:'FAQ', subtitle:'Common questions, easy answers', visible:true},
+    {id:'finalcta', title:'Final CTA', subtitle:'Book a free audit', visible:true}
+  ];
+  var sections = readLS('abmp_sections_v3', DEFAULT_SECTIONS);
+  var secEl = document.getElementById('sectionsEditor');
+  function renderSections(){
+    if(!secEl) return;
+    secEl.innerHTML='';
+    sections.forEach(function(s, i){
+      var div=document.createElement('div');
+      div.setAttribute('draggable','true'); div.setAttribute('data-sec-index', i);
+      div.style.cssText='border:1.5px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:var(--surface);display:flex;gap:10px;align-items:flex-start';
+      div.innerHTML='<span style="font-size:20px;cursor:grab;padding-top:10px" title="Drag to reorder">☰</span><div style="flex:1"><input data-sec-title="'+i+'" value="'+s.title.replace(/"/g,'&quot;')+'" style="width:100%;padding:9px;border:1.5px solid var(--line);border-radius:8px;margin-bottom:8px"><input data-sec-sub="'+i+'" value="'+s.subtitle.replace(/"/g,'&quot;')+'" style="width:100%;padding:9px;border:1.5px solid var(--line);border-radius:8px"><label style="display:block;margin-top:8px"><input type="checkbox" data-sec-vis="'+i+'" '+(s.visible?'checked':'')+'> Visible on homepage</label></div><div style="display:flex;flex-direction:column;gap:6px"><button data-sec-up="'+i+'" class="btn btn-ghost btn-sm">↑ Up</button><button data-sec-down="'+i+'" class="btn btn-ghost btn-sm">↓ Down</button></div>';
+      secEl.appendChild(div);
+    });
+    // drag and drop
+    var dragIdx=null;
+    secEl.querySelectorAll('[data-sec-index]').forEach(function(row){
+      row.addEventListener('dragstart', function(){ dragIdx=parseInt(row.getAttribute('data-sec-index')); });
+      row.addEventListener('dragover', function(e){ e.preventDefault(); });
+      row.addEventListener('drop', function(e){ e.preventDefault(); var to=parseInt(row.getAttribute('data-sec-index')); if(dragIdx!==null && dragIdx!==to){ var item=sections.splice(dragIdx,1)[0]; sections.splice(to,0,item); renderSections(); } });
+    });
+    secEl.querySelectorAll('[data-sec-up]').forEach(function(b){ b.addEventListener('click', function(){ var i=parseInt(b.getAttribute('data-sec-up')); if(i>0){ var t=sections[i-1]; sections[i-1]=sections[i]; sections[i]=t; renderSections(); } }); });
+    secEl.querySelectorAll('[data-sec-down]').forEach(function(b){ b.addEventListener('click', function(){ var i=parseInt(b.getAttribute('data-sec-down')); if(i<sections.length-1){ var t=sections[i+1]; sections[i+1]=sections[i]; sections[i]=t; renderSections(); } }); });
+    secEl.querySelectorAll('[data-sec-title]').forEach(function(inp){ inp.addEventListener('input', function(){ sections[parseInt(inp.getAttribute('data-sec-title'))].title=inp.value; }); });
+    secEl.querySelectorAll('[data-sec-sub]').forEach(function(inp){ inp.addEventListener('input', function(){ sections[parseInt(inp.getAttribute('data-sec-sub'))].subtitle=inp.value; }); });
+    secEl.querySelectorAll('[data-sec-vis]').forEach(function(inp){ inp.addEventListener('change', function(){ sections[parseInt(inp.getAttribute('data-sec-vis'))].visible=inp.checked; }); });
+  }
+  renderSections();
+  var saveSec=document.getElementById('saveSections');
+  if(saveSec) saveSec.addEventListener('click', function(){ saveLS('abmp_sections_v3', sections); document.getElementById('sectionsMsg').textContent='✓ Sections order and text saved in this browser.'; });
+  var resetSec=document.getElementById('resetSections');
+  if(resetSec) resetSec.addEventListener('click', function(){ sections=JSON.parse(JSON.stringify(DEFAULT_SECTIONS)); renderSections(); saveLS('abmp_sections_v3', sections); document.getElementById('sectionsMsg').textContent='✓ Sections reset to default.'; });
+  // Hero lines
+  var heroSaved=readLS('abmp_hero_lines', {});
+  if(heroSaved.title) document.getElementById('heroTitleLine').value=heroSaved.title;
+  if(heroSaved.sub) document.getElementById('heroSubLine').value=heroSaved.sub;
+  if(heroSaved.cta1) document.getElementById('heroCta1').value=heroSaved.cta1;
+  if(heroSaved.cta2) document.getElementById('heroCta2').value=heroSaved.cta2;
+  if(heroSaved.image) document.getElementById('heroImageLine').value=heroSaved.image;
+  var saveHero=document.getElementById('saveHeroLines');
+  if(saveHero) saveHero.addEventListener('click', function(){ saveLS('abmp_hero_lines', {title:document.getElementById('heroTitleLine').value, sub:document.getElementById('heroSubLine').value, cta1:document.getElementById('heroCta1').value, cta2:document.getElementById('heroCta2').value, image:document.getElementById('heroImageLine').value}); document.getElementById('heroMsg').textContent='✓ Hero lines saved in this browser.'; });
+  // Cards editor
+  var DEFAULT_CARDS = {
+    services: ['Social Media Marketing','Performance Ads (Meta & Google)','Content & Reel Production','Branding & Graphic Design','SEO & Content Writing','E-commerce & DTC Marketing','Web Development','Influencer Marketing','Strategy & Growth Funnels'],
+    platforms: ['Facebook Marketing','Instagram Marketing','TikTok Marketing','Google Marketing','YouTube Marketing','Social Media Handling','Content Creation'],
+    work: ['E-commerce Stores','Product-Based Websites','Service-Based Websites','Social Media Accounts Handled','Reels and Content Made','Ads That Bring Enquiries'],
+    industries: ['Fashion','Beauty','Jewelry','Home & Living','E-commerce / DTC','Travel','Food','Local Services']
+  };
+  var cardsData=readLS('abmp_cards_v3', null) || {};
+  Object.keys(DEFAULT_CARDS).forEach(function(k){ if(!cardsData[k]) cardsData[k]=DEFAULT_CARDS[k].map(function(t){ return {title:t, desc:'', image:''}; }); });
+  var cardsEl=document.getElementById('cardsEditor'), groupEl=document.getElementById('cardGroup');
+  function renderCards(){
+    if(!cardsEl || !groupEl) return;
+    var g=groupEl.value, list=cardsData[g];
+    cardsEl.innerHTML='';
+    list.forEach(function(c, i){
+      var div=document.createElement('div');
+      div.setAttribute('draggable','true'); div.setAttribute('data-card-index', i);
+      div.style.cssText='border:1.5px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px;background:var(--surface)';
+      div.innerHTML='<div style="display:flex;gap:10px;align-items:center"><span style="font-size:20px;cursor:grab">☰</span><input data-card-title="'+i+'" value="'+c.title.replace(/"/g,'&quot;')+'" style="flex:1;padding:9px;border:1.5px solid var(--line);border-radius:8px"><button data-card-del="'+i+'" class="btn btn-ghost btn-sm">Delete</button><button data-card-up="'+i+'" class="btn btn-ghost btn-sm">↑</button><button data-card-down="'+i+'" class="btn btn-ghost btn-sm">↓</button></div><input data-card-desc="'+i+'" value="'+(c.desc||'').replace(/"/g,'&quot;')+'" placeholder="Card description — edit every line here" style="width:100%;padding:9px;border:1.5px solid var(--line);border-radius:8px;margin-top:8px"><input data-card-img="'+i+'" value="'+(c.image||'').replace(/"/g,'&quot;')+'" placeholder="Image URL for this card (optional)" style="width:100%;padding:9px;border:1.5px solid var(--line);border-radius:8px;margin-top:8px">';
+      cardsEl.appendChild(div);
+    });
+    var dragIdx=null;
+    cardsEl.querySelectorAll('[data-card-index]').forEach(function(row){
+      row.addEventListener('dragstart', function(){ dragIdx=parseInt(row.getAttribute('data-card-index')); });
+      row.addEventListener('dragover', function(e){ e.preventDefault(); });
+      row.addEventListener('drop', function(e){ e.preventDefault(); var to=parseInt(row.getAttribute('data-card-index')); var list2=cardsData[groupEl.value]; if(dragIdx!==null && dragIdx!==to){ var item=list2.splice(dragIdx,1)[0]; list2.splice(to,0,item); renderCards(); } });
+    });
+    cardsEl.querySelectorAll('[data-card-title]').forEach(function(inp){ inp.addEventListener('input', function(){ cardsData[groupEl.value][parseInt(inp.getAttribute('data-card-title'))].title=inp.value; }); });
+    cardsEl.querySelectorAll('[data-card-desc]').forEach(function(inp){ inp.addEventListener('input', function(){ cardsData[groupEl.value][parseInt(inp.getAttribute('data-card-desc'))].desc=inp.value; }); });
+    cardsEl.querySelectorAll('[data-card-img]').forEach(function(inp){ inp.addEventListener('input', function(){ cardsData[groupEl.value][parseInt(inp.getAttribute('data-card-img'))].image=inp.value; }); });
+    cardsEl.querySelectorAll('[data-card-del]').forEach(function(b){ b.addEventListener('click', function(){ cardsData[groupEl.value].splice(parseInt(b.getAttribute('data-card-del')),1); renderCards(); }); });
+    cardsEl.querySelectorAll('[data-card-up]').forEach(function(b){ b.addEventListener('click', function(){ var i=parseInt(b.getAttribute('data-card-up')); var l=cardsData[groupEl.value]; if(i>0){ var t=l[i-1]; l[i-1]=l[i]; l[i]=t; renderCards(); } }); });
+    cardsEl.querySelectorAll('[data-card-down]').forEach(function(b){ b.addEventListener('click', function(){ var i=parseInt(b.getAttribute('data-card-down')); var l=cardsData[groupEl.value]; if(i<l.length-1){ var t=l[i+1]; l[i+1]=l[i]; l[i]=t; renderCards(); } }); });
+  }
+  if(groupEl) groupEl.addEventListener('change', renderCards);
+  renderCards();
+  var addCard=document.getElementById('addCard');
+  if(addCard) addCard.addEventListener('click', function(){ cardsData[groupEl.value].push({title:'New Card', desc:'', image:''}); renderCards(); });
+  var saveCards=document.getElementById('saveCards');
+  if(saveCards) saveCards.addEventListener('click', function(){ saveLS('abmp_cards_v3', cardsData); document.getElementById('cardsMsg').textContent='✓ Cards saved in this browser.'; });
+  // Export
+  function collectEdits(){
+    return {sections: readLS('abmp_sections_v3', sections), hero: readLS('abmp_hero_lines', {}), cards: readLS('abmp_cards_v3', cardsData), pages: readLS('abmp_pages', {}), services: readLS('abmp_services', []), blogs: readLS('abmp_blogs', []), leads: readLS('abmp_leads', []), settings: readLS('abmp_settings', {}), exported_at: new Date().toISOString()};
+  }
+  var exp=document.getElementById('exportEdits');
+  if(exp) exp.addEventListener('click', function(){
+    var blob=new Blob([JSON.stringify(collectEdits(), null, 2)], {type:'application/json'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='abmp-admin-edits.json'; a.click();
+    document.getElementById('exportMsg').textContent='✓ Edits downloaded. Send this file to me in chat and I will push it live.';
+  });
+  var cp=document.getElementById('copyEdits');
+  if(cp) cp.addEventListener('click', function(){
+    var txt=JSON.stringify(collectEdits(), null, 2);
+    if(navigator.clipboard) navigator.clipboard.writeText(txt).then(function(){ document.getElementById('exportMsg').textContent='✓ Edits copied. Paste them in chat and I will push them live.'; });
   });
 })();
 </script>
