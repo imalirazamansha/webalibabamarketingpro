@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
+Disallow: /abmp-admin-m7k9x2.html
 
 Sitemap: https://imalirazamansha.github.io/webalibabamarketingpro/sitemap.xml
