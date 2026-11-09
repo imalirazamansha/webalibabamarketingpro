@@ -14,7 +14,7 @@ button:disabled{opacity:.5;cursor:not-allowed}
 input{padding:10px;font-size:16px;border:1px solid #999;border-radius:6px;width:180px;letter-spacing:2px}
 .msg{margin-top:10px;font-weight:600} .ok{color:#15803d} .err{color:#b91c1c}
 code{background:#f3f4f6;padding:2px 6px;border-radius:4px;word-break:break-all}
-#qr{margin:12px 0} #qr canvas{border:1px solid #ddd}
+#qr{margin:12px 0}
 .hint{color:#555;font-size:14px}
 </style>
 </head>
@@ -54,7 +54,7 @@ code{background:#f3f4f6;padding:2px 6px;border-radius:4px;word-break:break-all}
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
 const SUPABASE_URL = "https://qajtqsraarkvjilsreyy.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhanRxc3JhYXJrdmppbHNyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMzY5MDYsImV4cCI6MjEwOTgxMjkwNn0.peT4IBT8CajAQqzXtMPo0oHAmkkI50oGd4sAlrrVz1I";
@@ -63,12 +63,20 @@ let currentFactorId = null;
 
 function setMsg(el, text, ok){ el.textContent = text; el.className = "msg " + (ok ? "ok" : "err"); }
 
+function getAalFromToken(accessToken){
+  try {
+    const payload = accessToken.split(".")[1];
+    const json = JSON.parse(atob(payload.replace(/-/g, "+").replace(/_/g, "/")));
+    return json.aal || "(aal claim nahi mila)";
+  } catch(e){ return "(aal decode nahi hua)"; }
+}
+
 async function showSession(){
   const { data, error } = await sb.auth.getSession();
   const el = document.getElementById("session");
   if (error || !data.session){ el.innerHTML = "Logged in NAHI hain. Pehle admin page se magic-link login karein."; return null; }
   const u = data.session.user;
-  const aal = data.session.aal || "(aal nahi mila)";
+  const aal = getAalFromToken(data.session.access_token);
   el.innerHTML = "Logged in: <b>" + u.email + "</b><br>User ID: <code>" + u.id + "</code><br>AAL: <b>" + aal + "</b>";
   document.getElementById("aal").innerHTML = "Current AAL: <b>" + aal + "</b>";
   return data.session;
@@ -102,9 +110,8 @@ document.getElementById("enrollBtn").addEventListener("click", async function(){
   const qrEl = document.getElementById("qr");
   qrEl.innerHTML = "";
   try {
-    const canvas = document.createElement("canvas");
-    await QRCode.toCanvas(canvas, uri, { width: 220 });
-    qrEl.appendChild(canvas);
+    if (typeof QRCode === "undefined"){ throw new Error("QR library load nahi hui"); }
+    new QRCode(qrEl, { text: uri, width: 200, height: 200, correctLevel: QRCode.CorrectLevel.M });
   } catch(e) {
     qrEl.innerHTML = "<span class='hint'>QR render nahi hua — secret upar se manual enter karein.</span>";
   }
@@ -117,8 +124,12 @@ document.getElementById("verifyBtn").addEventListener("click", async function(){
   const code = document.getElementById("totpCode").value.trim();
   if (!/^[0-9]{6}$/.test(code)){ setMsg(msg, "6-digit code daalein.", false); return; }
   if (!currentFactorId){ setMsg(msg, "Pehle Enroll TOTP dabayein.", false); return; }
+  setMsg(msg, "Challenge bana rahe hain...", true);
+  const ch = await sb.auth.mfa.challenge({ factorId: currentFactorId });
+  if (ch.error){ setMsg(msg, "Challenge fail: " + ch.error.message, false); return; }
+  const challengeId = ch.data.id;
   setMsg(msg, "Verifying...", true);
-  const { data, error } = await sb.auth.mfa.verify({ factorId: currentFactorId, code: code });
+  const { data, error } = await sb.auth.mfa.verify({ factorId: currentFactorId, challengeId: challengeId, code: code });
   if (error){ setMsg(msg, "Verify fail: " + error.message, false); return; }
   setMsg(msg, "TOTP enroll ho gaya! AAL ab aal2 hona chahiye. Neeche refresh karein.", true);
   await showFactors();
