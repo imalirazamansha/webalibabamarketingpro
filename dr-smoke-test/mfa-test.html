@@ -12,6 +12,7 @@ h1{font-size:20px} h2{font-size:16px;margin-top:28px}
 button{padding:10px 16px;font-size:15px;border-radius:6px;border:1px solid #333;background:#111;color:#fff;cursor:pointer}
 button:disabled{opacity:.5;cursor:not-allowed}
 input{padding:10px;font-size:16px;border:1px solid #999;border-radius:6px;width:180px;letter-spacing:2px}
+select{padding:10px;font-size:14px;border:1px solid #999;border-radius:6px;max-width:100%}
 .msg{margin-top:10px;font-weight:600} .ok{color:#15803d} .err{color:#b91c1c}
 code{background:#f3f4f6;padding:2px 6px;border-radius:4px;word-break:break-all}
 #qr{margin:12px 0}
@@ -53,6 +54,20 @@ code{background:#f3f4f6;padding:2px 6px;border-radius:4px;word-break:break-all}
 <p class="hint">Magic-link login ke baad AAL <b>aal1</b> hota hai. TOTP verify karne ke baad AAL <b>aal2</b> ho jata hai (platform admin ke liye zaroori).</p>
 </div>
 
+<div class="card">
+<h2>5. Pehle se enrolled factor verify karein (AAL2 test)</h2>
+<p class="hint">Platform admin (aliraza04591@gmail.com) ke liye: jo TOTP factor pehle se enrolled hai (restore hua), us ka code daal kar verify karein. Is se pata chalega ke restore hua TOTP ab bhi kaam karta hai ya nahi.</p>
+<div id="existingBox">
+<label>Verified factor: <select id="factorSelect"><option value="">Loading...</option></select></label>
+<button id="loadFactorsBtn" type="button">Factors load karein</button>
+</div>
+<div style="margin-top:12px">
+<label>Authenticator app ka 6-digit code: <input id="existCode" inputmode="numeric" maxlength="6" placeholder="123456"></label>
+<button id="existVerifyBtn" type="button">Verify factor (AAL2)</button>
+</div>
+<div id="existMsg" class="msg"></div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
@@ -89,9 +104,28 @@ async function showFactors(){
   const all = (data && data.all) || [];
   if (!all.length){ el.textContent = "Koi MFA factor nahi hai (0)."; return; }
   el.innerHTML = all.map(function(f){ return "&#8226; " + f.factor_type + " — status: <b>" + f.status + "</b> — id: <code>" + f.id + "</code> — created: " + f.created_at; }).join("<br>");
+  return all;
+}
+
+async function loadFactorSelect(){
+  const sel = document.getElementById("factorSelect");
+  const all = await showFactors();
+  const verified = (all || []).filter(function(f){ return f.status === "verified"; });
+  sel.innerHTML = "";
+  if (!verified.length){
+    const o = document.createElement("option"); o.value = ""; o.textContent = "Koi verified factor nahi hai";
+    sel.appendChild(o); return;
+  }
+  verified.forEach(function(f){
+    const o = document.createElement("option");
+    o.value = f.id;
+    o.textContent = f.factor_type + " — " + f.id.slice(0, 8) + "... — " + f.created_at.slice(0, 10);
+    sel.appendChild(o);
+  });
 }
 
 document.getElementById("refreshBtn").addEventListener("click", async function(){ await showFactors(); await showSession(); });
+document.getElementById("loadFactorsBtn").addEventListener("click", async function(){ await loadFactorSelect(); });
 
 document.getElementById("enrollBtn").addEventListener("click", async function(){
   const msg = document.getElementById("enrollMsg");
@@ -134,9 +168,28 @@ document.getElementById("verifyBtn").addEventListener("click", async function(){
   setMsg(msg, "TOTP enroll ho gaya! AAL ab aal2 hona chahiye. Neeche refresh karein.", true);
   await showFactors();
   await showSession();
+  await loadFactorSelect();
 });
 
-(async function(){ await showSession(); await showFactors(); })();
+document.getElementById("existVerifyBtn").addEventListener("click", async function(){
+  const msg = document.getElementById("existMsg");
+  const factorId = document.getElementById("factorSelect").value;
+  const code = document.getElementById("existCode").value.trim();
+  if (!factorId){ setMsg(msg, "Pehle verified factor select karein (Factors load karein).", false); return; }
+  if (!/^[0-9]{6}$/.test(code)){ setMsg(msg, "6-digit code daalein.", false); return; }
+  setMsg(msg, "Challenge bana rahe hain...", true);
+  const ch = await sb.auth.mfa.challenge({ factorId: factorId });
+  if (ch.error){ setMsg(msg, "Challenge fail: " + ch.error.message, false); return; }
+  const challengeId = ch.data.id;
+  setMsg(msg, "Verifying...", true);
+  const { data, error } = await sb.auth.mfa.verify({ factorId: factorId, challengeId: challengeId, code: code });
+  if (error){ setMsg(msg, "Verify fail: " + error.message, false); return; }
+  setMsg(msg, "Factor verify ho gaya! AAL ab aal2 hona chahiye.", true);
+  await showFactors();
+  await showSession();
+});
+
+(async function(){ await showSession(); await showFactors(); await loadFactorSelect(); })();
 </script>
 </body>
 </html>
