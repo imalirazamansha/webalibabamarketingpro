@@ -1,0 +1,3135 @@
+/* ================= ShopNest Admin (Shopify-level, MULTI-TENANT) =================
+   Access model: login (magic link) ke baad email ki public.team rows
+   (har store ki alag role) + public.platform_admins check hote hain.
+   Store context: ?store=slug → sessionStorage → ek hi entitled store →
+   store picker. Platform admin har store mein owner-level hai.
+   Har query/mutation CURRENT store_id se scoped hai.
+   Per-store roles: owner = sab kuch, admin = Team ke ilawa sab,
+   staff = sirf Dashboard / Orders / Products. */
+const SUPABASE_URL = "https://qajtqsraarkvjilsreyy.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFhanRxc3JhYXJrdmppbHNyZXl5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMzY5MDYsImV4cCI6MjEwOTgxMjkwNn0.peT4IBT8CajAQqzXtMPo0oHAmkkI50oGd4sAlrrVz1I";
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const $ = s => document.querySelector(s);
+const fmt = n => "Rs." + Number(n || 0).toLocaleString("en-PK");
+const STATUSES = ["Pending", "Confirmed", "Shipped", "Delivered", "Cancelled"];
+const STATUS_COLORS = { Pending: "#f59e0b", Confirmed: "#3b82f6", Shipped: "#8b5cf6", Delivered: "#22C55E", Cancelled: "#EF4444" };
+const PLACEHOLDER_IMG = "https://placehold.co/600x400/eef6fa/0A2B4E?text=No+Image";
+/* ---------- V2: Appearance (fonts / theme) + Homepage sections ---------- */
+/* font_family settings mein OBJECT save hota hai: { name, stack, google } —
+   stack = CSS font-family string, google = Google Fonts query (khaali = system). */
+const FONTS = {
+  "": { name: "", stack: "system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif", google: "" },
+  "Poppins": { name: "Poppins", stack: "'Poppins', system-ui, sans-serif", google: "Poppins:wght@400;500;600;700;800" },
+  "Inter": { name: "Inter", stack: "'Inter', system-ui, sans-serif", google: "Inter:wght@400;500;600;700;800" },
+  "Roboto": { name: "Roboto", stack: "'Roboto', system-ui, sans-serif", google: "Roboto:wght@400;500;700" },
+  "Montserrat": { name: "Montserrat", stack: "'Montserrat', system-ui, sans-serif", google: "Montserrat:wght@400;500;600;700;800" },
+  "Playfair Display": { name: "Playfair Display", stack: "'Playfair Display', Georgia, serif", google: "Playfair+Display:wght@500;600;700;800" },
+  "Rubik": { name: "Rubik", stack: "'Rubik', system-ui, sans-serif", google: "Rubik:wght@400;500;600;700" }
+};
+function fontObjFromName(name){ const f = FONTS[name] || FONTS[""]; return { name: f.name, stack: f.stack, google: f.google }; }
+function fontNameOf(ff){
+  if (!ff) return "";
+  if (typeof ff === "string") return FONTS[ff] ? ff : "";
+  return ff.name && FONTS[ff.name] ? ff.name : "";
+}
+const THEME_SWATCHES = [
+  { name: "Zeebay Navy", color: "#0A2B4E" },
+  { name: "Fresh Green", color: "#22C55E" },
+  { name: "Maroon", color: "#7f1d1d" },
+  { name: "Purple", color: "#6d28d9" },
+  { name: "Teal", color: "#0f766e" },
+  { name: "Black / Gold", color: "#111111" },
+  { name: "Pink", color: "#db2777" }
+];
+/* Homepage sections — storefront (index.html) ke asal sections, DOM order mein.
+   key = sections_order wali key; LEGACY_SEC purane settings.sections toggle
+   keys se map hai (jo storefront abhi parhta hai). */
+const SECTION_DEFS = [
+  { key: "hero", label: "Hero Slider", sub: "Bara banner slider" },
+  { key: "trust", label: "Trust Strip", sub: "COD / Fast Delivery wali patti" },
+  { key: "categories", label: "Shop by Category", sub: "Category tiles" },
+  { key: "best_sellers", label: "Best Sellers", sub: "Sab se zyada bikne wale products" }, { key: "featured", label: "Featured Pick", sub: "Bari featured product band (Playful Pop)" }, { key: "festive", label: "Festive Edit", sub: "2×2 labelled tiles (Luxury theme)" }, { key: "unstitched_tabs", label: "Unstitched Tabs", sub: "Luxury / Daily Wear / Embroidered tabs (Luxury theme)" }, { key: "readytowear_tabs", label: "Ready To Wear Tabs", sub: "Luxury / Daily Wear / Embroidered tabs (Luxury theme)" }, { key: "editorial", label: "Editorial Banner", sub: "Full-width image banner (Luxury theme)" },
+  { key: "all_products", label: "All Products", sub: "Poori products list + filters" },
+  { key: "promos", label: "Promo Banners", sub: "Do bare promo cards" }, { key: "reels", label: "Reels & Videos", sub: "Instagram reels row (Playful Pop + Luxury Spotted)" },
+  { key: "hot", label: "Hot Selling", sub: "Trending carousel" },
+  { key: "new_arrivals", label: "New Arrivals", sub: "Naye products" },
+  { key: "deals", label: "Mega Deals", sub: "Limited time deals" },
+  { key: "budget", label: "Shop by Budget", sub: "Budget tiles" },
+  { key: "about", label: "About", sub: "Store ke baare mein" },
+  { key: "how_to_order", label: "How to Order", sub: "Order karne ke steps" },
+  { key: "faq", label: "FAQ", sub: "Aksar pooche jane wale sawalat" },
+  { key: "testimonials", label: "Happy Customers", sub: "Customer reviews" }, { key: "blog", label: "Blog & Guides", sub: "Buying guide cards (Playful Pop)" }
+];
+const LEGACY_SEC = { best_sellers: "best", promos: "promos", hot: "hot", new_arrivals: "arrivals", deals: "deals", budget: "budget", about: "about", how_to_order: "howto", faq: "faq", testimonials: "reviews" };
+function esc(s){ return String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+/* V3 Part B security: escapeHtml = esc (storefront ke naam se match). */
+const escapeHtml = esc;
+/* V3 Part B security: safeUrl — sirf http(s)/relative image URLs. */
+function safeUrl(u){
+  const t = String(u || "").trim();
+  if (!t) return "";
+  if (/^https?:\/\//i.test(t)) return t;
+  if (t.startsWith("/") || t.startsWith("./") || t.startsWith("../")) return t;
+  if (!/^[a-z][a-z0-9+.-]*:/i.test(t)) return t;
+  return "";
+}
+
+let settingsLoaded = false;
+let MY_EMAIL = null;
+let MY_ROLE = null;          // CURRENT store mein is user ki team role (platform-only ho to null)
+/* ---------- Multi-tenant store context ---------- */
+let IS_PLATFORM = false;     // platform_admins mein hai?
+let MY_STORES = [];          // entitled stores: stores row + { role } (role null = sirf platform access)
+let STORE_ID = null;         // current store ki uuid — SAARI queries isi se scope hoti hain
+let STORE_SLUG = null;
+let STORE_NAME = null;
+/* Effective role: platform admin har store mein owner-level mana jata hai. */
+const effRole = () => MY_ROLE || (IS_PLATFORM ? "owner" : null);
+let ORDERS_CACHE = [];
+let PRODUCTS_CACHE = [];
+let CATEGORIES_CACHE = [];
+let heroState = [];
+/* ---------- V2 state ---------- */
+let CURRENT_TAB = "dashboard";
+let SETTINGS_STATE = null;   // loadSettings ke baad full merged settings (saare tabs isi se bharte/save hote hain)
+let EDITING_PRODUCT_ID = null;
+let HP_ORDER = []; let HP_LUX_WARN = []; // Is theme par render na hone wali sections ki list (grey rows) — builder se koi key nahi hat-ti           // homepage builder: [{key, visible}] — custom entries key "custom:<id>"
+let HP_CUSTOM = {};          // custom sections content: id -> {heading, text, img, btn_label, btn_link}
+let homepageFilled = false;
+
+const isAdminPlus = () => effRole() === "owner" || effRole() === "admin";
+
+/* Storefront defaults — script.js ke DEFAULT_SETTINGS se match. */
+const ADMIN_DEFAULT_SETTINGS = {
+  store_name: "ShopNest",
+  seo_title: "",
+  seo_description: "",
+  announcements: [
+    "⚡ {STORE} — PAKISTAN KA SMART STORE",
+    "💵 CASH ON DELIVERY ALL OVER PAKISTAN",
+    "🚚 FAST DELIVERY 3–5 DAYS",
+    "🔥 HOT DEALS — LIMITED STOCK"
+  ],
+  hero: [
+    { pill: "🔥 MEGA SALE — 50% TAK OFF", title: "SMART GADGETS, SMART LIFE!", subtitle: "Pakistan ke best smart gadgets — quality checked, Cash on Delivery ke saath, seedha aapke ghar tak.", button: "SHOP BEST SELLERS", image: "https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&w=1200&q=80", visible: true },
+    { pill: "🎧 AUDIO, WEARABLES & MORE", title: "HAR GHAR KI ZAROORAT!", subtitle: "Headphones, smart watches aur roz-marra ke useful products — honest prices aur fast dispatch.", button: "SHOP DEALS", image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&w=1200&q=80", visible: true }
+  ],
+  promo: [
+    { kicker: "HOME ESSENTIALS", heading: "GHAR KE LIYE SMART CHOICE", text: "Waqt aur mehnat dono bachayein — smart home products jo roz ka kaam asaan kar dein.", category: "Home & Living" },
+    { kicker: "STYLE & FASHION", heading: "LOOK BHI, COMFORT BHI", text: "Trending fashion essentials — quality checked aur Cash on Delivery ke saath.", category: "Fashion" }
+  ],
+  about_heading: "PAKISTAN KA SMART STORE",
+  about_text: "ShopNest par hum sirf wohi products rakhte hain jo pehle test kiye jayein. Har order dispatch se pehle quality-check hota hai aur payment Cash on Delivery hai — pehle product aapke haath mein, phir paisay. Poore Pakistan mein fast dispatch, aur damaged ya wrong product par easy exchange. Smart shopping, bina tension!",
+  /* V3.3 Content — storefront DEFAULT_SETTINGS se match (khaali = defaults). */
+  howSteps: [
+    { title: "PRODUCT CHUNEIN", text: "Apni pasand ka product select karein aur details achi tarah parhein." },
+    { title: "ORDER FORM BHAREIN", text: "Naam, mobile number, city aur mukammal address likhein." },
+    { title: "CONFIRMATION CALL", text: "Humari team call karke order aur address confirm karegi." },
+    { title: "DELIVERY PE PAYMENT", text: "Product milne par Cash on Delivery mein payment karein." }
+  ],
+  faqs: [
+    { q: "Kya Cash on Delivery available hai?", a: "Ji haan, poore Pakistan mein Cash on Delivery available hai. Product milne ke baad payment karein." },
+    { q: "Delivery kitne din mein hoti hai?", a: "Aam taur par delivery 3–5 working days mein ho jati hai. Kuch shehron mein is se jaldi bhi mil sakti hai." },
+    { q: "Order confirm kaise hoga?", a: "Order place karne ke baad humari team aapko call karke naam, address aur product details confirm karegi." },
+    { q: "Agar product damaged ya wrong aa jaye to?", a: "Damaged ya wrong product ki soorat mein hum se foran rabta karein. Policy ke mutabiq easy exchange ki sahulat available hai." },
+    { q: "Kya products original aur tested hain?", a: "Har product dispatch se pehle quality-check aur test kiya jata hai taa ke aapko sahi aur working product mile." }
+  ],
+  reviews: [
+    { product: "Luxury Perfume — 100ml", name: "Ahmed Raza", city: "Lahore", rating: 4.8, text: "Product bilkul tasveer jaisa mila. Quality boht achi hai aur delivery bhi time par ho gayi." },
+    { product: "Wireless Noise-Cancelling Headphones", name: "Fatima Khan", city: "Karachi", rating: 4.8, text: "Cash on Delivery ki wajah se bina tension order kiya. Packing aur product dono zabardast thay." },
+    { product: "Running Sneakers — Lightweight", name: "Usman Ali", city: "Islamabad", rating: 4.7, text: "Price ke hisaab se quality boht behtar hai. Main apni family ko bhi recommend karoon ga." },
+    { product: "Mechanical Keyboard — RGB", name: "Ayesha Noor", city: "Faisalabad", rating: 4.7, text: "Order confirm karne ke liye call aayi aur do din mein parcel mil gaya. Boht satisfied hoon." }
+  ],
+  budgetTiles: [
+    { label: "UNDER", amount: "Rs.1,499", note: "Choti price, smart choice", budget: "1499" },
+    { label: "UNDER", amount: "Rs.1,999", note: "Roz-marra ki essentials", budget: "1999" },
+    { label: "UNDER", amount: "Rs.2,999", note: "Value picks, zyada faida", budget: "2999" },
+    { label: "★ TOP PICKS", amount: "HIGHEST RATED", note: "Customers ki pehli pasand", budget: "top" }
+  ],
+  trustItems: [
+    { title: "CASH ON DELIVERY", sub: "Pay when it arrives" },
+    { title: "FAST DELIVERY", sub: "3–5 days, all Pakistan" },
+    { title: "QUALITY CHECKED", sub: "Tested before dispatch" },
+    { title: "EASY EXCHANGE", sub: "On damaged items" }
+  ],
+  whatsapp_number: "",
+  /* V3.6: Instagram reels + blog */ instaHandle: "", instaReels: [], blogPosts: [], showReels: true, showBlog: true, /* V3.9: fashion options + editable section/PDP text */ showSizes: true, showColors: true, showDisclaimer: true, sectionText: {}, pdpText: { details: "", related: "", delivery: "" }, /* V3.10: Luxury theme content (Festive tiles, Collection tabs, Editorial banner) */ luxuryTiles: [], luxuryTabs: [], luxuryBanner: { img: "", eyebrow: "", title: "", button: "", cat: "" }, /* V3.11: Ready To Wear tabs + Editorial slider banners */ luxuryRtwTabs: [], luxuryBanners: [], collectionPages: [], /* --- V5 Phase 4: custom pages --- */ customPages: [], /* --- V5 Phase 5: Meta + custom code (har theme) --- */ meta: { pixelId: "", capiEnabled: false, testEventCode: "", hasCapiToken: false, capiTokenLast4: "" }, customCode: { head: "", body: "" }, sections: { best: true, hot: true, arrivals: true, deals: true, budget: true, about: true, howto: true, faq: true, reviews: true, promos: true },
+  policies: { shipping: "", refund: "", privacy: "", terms: "", contact: "" },
+  profile: { logo_url: "", email: "", phone: "", address: "" },
+  /* V2 keys — storefront inhein consume karega (Part B) */
+  font_family: { name: "", stack: "", google: "" },
+  theme_color: "",
+  logo_url: "",
+  socials: { facebook: "", instagram: "", tiktok: "", youtube: "", x: "", whatsapp: "" },
+  menu_links: [],
+  footer_links: [],
+  footer_text: "",
+  sections_order: null,
+  custom_sections: [],
+  checkout_fields: [],
+  product_fields: [],
+  /* V3: store admin ki theme choice (settings.data.theme) */
+  theme: "",
+  /* V3.2 Style Editor — storefront ke DEFAULT_SETTINGS.style se match;
+     khaali string = theme default (style kabhi theme ko wipe nahi karta). */
+  style: {
+    card: { radius: "", bg: "", border: "", shadow: "", titleColor: "", priceColor: "" },
+    sections: {},
+    buttons: { primaryBg: "", primaryColor: "", radius: "", secondaryColor: "", fontSize: "" },
+    page: { headerBg: "", footerBg: "", marqueeBg: "", pageBg: "", textColor: "" },
+    socialProof: { enabled: true, intervalSec: 20, durationSec: 5, entries: [] }
+  }
+};
+
+/* ---------- Auth (magic link) + team gate ---------- */
+$("#sendLinkBtn").onclick = async () => {
+  const email = $("#loginEmail").value.trim();
+  const msg = $("#loginMsg");
+  if (!email){ msg.textContent = "Email likhein pehle."; msg.className = "msg err"; return; }
+  msg.textContent = "Login link bheja ja raha hai…"; msg.className = "msg";
+  const { error } = await sb.auth.signInWithOtp({
+    email,
+    options: { emailRedirectTo: window.location.href.split("#")[0] },
+  });
+  if (error){ msg.textContent = "Error: " + error.message; msg.className = "msg err"; showToast("Error: " + error.message, "err"); }
+  else { msg.textContent = "✅ Link bhej diya gaya hai — apna email inbox check karein aur link par click karein."; msg.className = "msg ok"; showToast("✅ Login link bhej diya gaya — inbox check karein.", "ok"); }
+};
+$("#logoutBtn").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+$("#noAccessLogout").onclick = async () => { await sb.auth.signOut(); location.reload(); };
+
+sb.auth.onAuthStateChange((_event, session) => { if (session) checkAccess(session); });
+(async () => { const { data } = await sb.auth.getSession(); if (data.session) checkAccess(data.session); })();
+
+let accessCheckedFor = null;
+async function checkAccess(session){
+  const email = session && session.user && session.user.email;
+  if (!email) return;
+  if (accessCheckedFor === email) return;
+  accessCheckedFor = email;
+  MY_EMAIL = email;
+  try {
+    /* Is email ki SAARI team rows (har store ki) + platform admin check.
+       Dono queries RLS-scoped hain: team rows sirf entitled stores ki
+       milti hain; platform_admins mein apni row sirf platform admin ko
+       nazar aati hai. "team by email" wali ye lookup jaan boojh kar
+       store-unscoped hai — yahi login ka entry point hai. */
+    const [teamRes, platRes] = await Promise.all([
+      sb.from("team").select("email, store_id, role").eq("email", email),
+      sb.from("platform_admins").select("email").eq("email", email).maybeSingle()
+    ]);
+    if (teamRes.error) throw teamRes.error;
+    IS_PLATFORM = !!(platRes && platRes.data);
+    const teamRows = teamRes.data || [];
+    /* Stores ki list bhi RLS-scoped hai: team member ko sirf apni stores,
+       platform admin ko SAARI stores milti hain. */
+    const { data: storeRows, error: storeErr } = await sb.from("stores").select("id, slug, name, status, allowed_themes");
+    if (storeErr) throw storeErr;
+    const byId = {};
+    (storeRows || []).forEach(s => { byId[s.id] = s; });
+    MY_STORES = teamRows.filter(r => byId[r.store_id]).map(r => ({ ...byId[r.store_id], role: r.role }));
+    if (IS_PLATFORM){
+      (storeRows || []).forEach(s => { if (!MY_STORES.some(m => m.id === s.id)) MY_STORES.push({ ...s, role: null }); });
+    }
+    MY_STORES = MY_STORES.filter(s => s.status !== "deleted");
+    if (!MY_STORES.length){ showNoAccess(email); return; }
+
+    /* Store resolution: ?store= param → sessionStorage → ek hi store → picker */
+    const paramSlug = (new URLSearchParams(location.search).get("store") || "").trim().toLowerCase();
+    let chosen = null;
+    if (paramSlug){
+      chosen = MY_STORES.find(s => s.slug === paramSlug) || null;
+      if (!chosen){
+        /* Store mojood hai lekin is user ki entitled list mein nahi? */
+        const { data: pub } = await sb.from("storefront_stores").select("slug, name").eq("slug", paramSlug).maybeSingle();
+        if (pub){ showNoAccess(email, pub.name || paramSlug); return; }
+      }
+    }
+    if (!chosen){
+      let saved = null;
+      try { saved = sessionStorage.getItem("sn_admin_store"); } catch (e) {}
+      if (saved) chosen = MY_STORES.find(s => s.id === saved) || null;
+    }
+    if (!chosen && MY_STORES.length === 1) chosen = MY_STORES[0];
+    if (chosen) enterStore(chosen);
+    else showStorePicker();
+  } catch (e) {
+    console.error("Store context resolve fail:", e);
+    showNoAccess(email);
+  }
+}
+let STORE_ALLOWED_THEMES = null; /* is store ke liye allowed theme keys ([] = sab) */
+function enterStore(store){
+  STORE_ALLOWED_THEMES = store.allowed_themes;
+  STORE_ID = store.id;
+  STORE_SLUG = store.slug;
+  STORE_NAME = store.name;
+  MY_ROLE = store.role || null;
+  try { sessionStorage.setItem("sn_admin_store", store.id); } catch (e) {}
+  try {
+    const u = new URL(location.href);
+    if (u.searchParams.get("store") !== store.slug){ u.searchParams.set("store", store.slug); history.replaceState(null, "", u); }
+  } catch (e) {}
+  settingsLoaded = false;
+  updateStoreHeader();
+  showDash();
+}
+function updateStoreHeader(){
+  const sel = $("#storeSwitcher");
+  sel.innerHTML = MY_STORES.map(s => `<option value="${esc(s.id)}" ${s.id === STORE_ID ? "selected" : ""}>${esc(s.name)}</option>`).join("");
+  $("#storeContext").classList.remove("hidden");
+  $("#curStoreName").textContent = STORE_NAME || "";
+  const roleEl = $("#curStoreRole");
+  roleEl.textContent = MY_ROLE ? (MY_ROLE === "owner" ? "Owner" : MY_ROLE === "admin" ? "Admin" : "Staff") : "👑 Platform";
+  roleEl.className = "pill " + (effRole() === "owner" ? "green" : "");
+  $("#viewStoreLink").href = "index.html?store=" + encodeURIComponent(STORE_SLUG || "shopnest");
+}
+$("#storeSwitcher").addEventListener("change", e => {
+  const store = MY_STORES.find(s => s.id === e.target.value);
+  if (store && store.id !== STORE_ID) enterStore(store);
+});
+function showStorePicker(){
+  $("#loginView").classList.add("hidden");
+  $("#dashView").classList.add("hidden");
+  $("#noAccessView").classList.add("hidden");
+  $("#storePickerView").classList.remove("hidden");
+  $("#logoutBtn").classList.remove("hidden");
+  $("#pickerEmail").textContent = MY_EMAIL || "";
+  $("#pickerList").innerHTML = MY_STORES.map(s => `<button class="btn ghost store-pick" data-pick="${esc(s.id)}"><span>🏪 <strong>${esc(s.name)}</strong> <small>/${esc(s.slug)}${s.status === "suspended" ? " • ⏸ suspended" : ""}</small></span><span class="pill ${s.role ? "green" : ""}">${s.role ? esc(s.role) : "👑 platform"}</span></button>`).join("");
+  $("#pickerList").querySelectorAll("[data-pick]").forEach(b => b.onclick = () => {
+    const store = MY_STORES.find(s => s.id === b.dataset.pick);
+    if (store) enterStore(store);
+  });
+}
+function showNoAccess(email, storeName){
+  $("#loginView").classList.add("hidden");
+  $("#dashView").classList.add("hidden");
+  $("#storePickerView").classList.add("hidden");
+  $("#noAccessView").classList.remove("hidden");
+  $("#noAccessEmail").textContent = email || "";
+  $("#logoutBtn").classList.remove("hidden");
+  if (storeName){
+    const p = $("#noAccessView").querySelector("p");
+    if (p) p.innerHTML = `Aap <strong>${esc(email || "")}</strong> se login hain, lekin <strong>${esc(storeName)}</strong> store ki team mein shamil nahi hain. Us store ke <strong>owner se rabta karein</strong> — woh Team tab se aapka email add kar dein ge.`;
+  }
+}
+function showDash(){
+  $("#loginView").classList.add("hidden");
+  $("#noAccessView").classList.add("hidden");
+  $("#storePickerView").classList.add("hidden");
+  $("#dashView").classList.remove("hidden");
+  $("#logoutBtn").classList.remove("hidden");
+  /* Role gating (current store ki role par): staff ko Categories/Coupons/Team/Settings nahi; admin ko Team nahi. */
+  $("#tabTeam").classList.toggle("hidden", effRole() !== "owner");
+  const adminOnlyTabs = ["tabCategories", "tabCoupons", "tabSettings", "tabHomepage", "tabAppearance", "tabStyle", "tabContent", "tabMeta"]; /* V5 Phase 5: Meta tab sirf Owner/Admin — staff ko token fields kabhi nahi. */
+  adminOnlyTabs.forEach(id => document.getElementById(id).classList.toggle("hidden", !isAdminPlus()));
+  switchTab("dashboard");
+  loadAll();
+  if (isAdminPlus() && !settingsLoaded) loadSettings();
+}
+$("#refreshBtn").onclick = loadAll;
+
+async function loadAll(){
+  await Promise.all([loadOrders(), loadProducts(), loadCategories()]);
+  await loadDashboard();
+  if (isAdminPlus()) loadDomain();
+  if (isAdminPlus()) loadCoupons();
+  if (effRole() === "owner") loadTeam();
+}
+
+/* ---------- Image upload (Supabase Storage: product-images) ---------- */
+/* V3.6c: upload se pehle auto-compress — phone ki bari photo khud chhoti
+   hokar upload hoti hai (lambi side max 1200px, JPEG quality 82%), taa ke
+      Supabase storage + bandwidth ~10 guna kam lage. PNG ki transparency
+         mehfooz rehti hai; GIF/SVG ko haath nahi lagaya jata. FAIL-OPEN: kisi
+            bhi masle par original file hi upload hoti hai, upload kabhi nahi rukta. */
+async function compressImage(file){
+   const MAX = 1200, QUALITY = 0.82;
+   try {
+      if (!file || !String(file.type || "").startsWith("image/")) return file;
+      if (file.type === "image/gif" || file.type === "image/svg+xml") return file;
+      let src = null, w = 0, h = 0, objUrl = "";
+      try {
+         src = await createImageBitmap(file, { imageOrientation: "from-image" });
+         w = src.width; h = src.height;
+      } catch (e) {
+         const img = await new Promise((resolve, reject) => {
+            const im = new Image();
+            im.onload = () => resolve(im);
+            im.onerror = () => reject(new Error("img"));
+            objUrl = URL.createObjectURL(file);
+            im.src = objUrl;
+         });
+         src = img; w = img.naturalWidth; h = img.naturalHeight;
+      }
+      if (!w || !h) return file;
+      const scale = Math.min(1, MAX / Math.max(w, h));
+      const cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+      const cv = document.createElement("canvas");
+      cv.width = cw; cv.height = ch;
+      const ctx = cv.getContext("2d");
+      if (file.type !== "image/png"){ ctx.fillStyle = "#ffffff"; ctx.fillRect(0, 0, cw, ch); }
+      ctx.drawImage(src, 0, 0, cw, ch);
+      if (src && src.close) src.close();
+      if (objUrl) URL.revokeObjectURL(objUrl);
+      const outType = file.type === "image/png" ? "image/png" : "image/jpeg";
+      const blob = await new Promise(res => cv.toBlob(res, outType, QUALITY));
+      if (!blob || blob.size >= file.size) return file;
+      const ext = outType === "image/png" ? "png" : "jpg";
+      return new File([blob], file.name.replace(/\.[^.]+$/, "") + "." + ext, { type: outType });
+   } catch (e) { return file; }
+}
+function fmtSize(b){
+     b = Number(b || 0);
+     if (b < 1024) return b + " B";
+     if (b < 1024 * 1024) return Math.round(b / 1024) + " KB";
+     return (b / 1048576).toFixed(1) + " MB";
+}
+/* Aakhri upload ki size report — product form upload ke baad dikhata hai
+   ke compression lagi ya nahi (original → uploaded). */
+let LAST_UPLOAD_INFO = null;
+async function uploadImage(file, folder){
+  if (!file) throw new Error("Koi image file select nahi hui.");
+  /* HEIC (iPhone ki default photo format) browser mein dikhayi nahi deta —
+     is liye isay chup-chap upload karke kharab image banane ke bajaye
+     foran saaf message ke saath roka jata hai. */
+  if (/\.hei[cf]$/i.test(file.name || "") || file.type === "image/heic" || file.type === "image/heif") throw new Error("Ye photo HEIC format mein hai (iPhone ki default setting) — browser isay dikha nahi sakta, is liye upload rok di gayi hai. iPhone par Settings → Camera → Formats → 'Most Compatible' select karein, ya photo ko JPG mein convert karke dobara upload karein.");
+  if (!String(file.type || "").startsWith("image/")) throw new Error("Sirf image file select karein.");
+   const up = await compressImage(file);
+     LAST_UPLOAD_INFO = { before: file.size, after: up.size };
+  const match = String(up.name || "").match(/\.([a-zA-Z0-9]+)$/);
+  const ext = match ? "." + match[1].toLowerCase() : "";
+  const uniqueName = `${Date.now()}-${Math.random().toString(36).slice(2, 10)}${ext}`;
+  const path = `${folder}/${uniqueName}`;
+  const { error } = await sb.storage.from("product-images").upload(path, up, { upsert: true, contentType: up.type });
+  if (error) throw error;
+  const { data } = sb.storage.from("product-images").getPublicUrl(path);
+  if (!data || !data.publicUrl) throw new Error("Upload ke baad public URL nahi mila.");
+  return data.publicUrl;
+}
+function setUploadMsg(el, text, kind = ""){
+  if (!el) return;
+  el.textContent = text;
+  el.className = "upload-msg" + (kind ? " " + kind : "");
+}
+/* ---------- Global toast (har kaam par khoobsurat success/fail popup) ---------- */
+function showToast(msg, kind = "ok"){
+  let wrap = document.getElementById("toastWrap");
+  if (!wrap){ wrap = document.createElement("div"); wrap.id = "toastWrap"; document.body.appendChild(wrap); }
+  const el = document.createElement("div");
+  el.className = "toast " + (kind === "err" ? "err" : kind === "info" ? "info" : "ok");
+  const icon = kind === "err" ? "❌" : kind === "info" ? "ℹ️" : "✅";
+  el.innerHTML = `<span>${icon}</span><span style="flex:1">${esc(String(msg))}</span><button type="button" aria-label="Band karein">✕</button>`;
+  el.querySelector("button").onclick = () => el.remove();
+  wrap.appendChild(el);
+  setTimeout(() => el.remove(), (kind === "err" || kind === "info") ? 7000 : 4500);
+}
+
+/* ---------- Orders ---------- */
+/* Naye orders mein items ek OBJECT hai { lines, coupon, discount };
+   purane orders plain ARRAY thay. Dono ko lines ki list mein normalize karein. */
+function orderLines(o){
+  if (Array.isArray(o && o.items)) return o.items;
+  if (o && o.items && Array.isArray(o.items.lines)) return o.items.lines;
+  return [];
+}
+function orderMeta(o){
+  if (o && o.items && !Array.isArray(o.items)) return { coupon: o.items.coupon || null, discount: Number(o.items.discount) || 0 };
+  return { coupon: null, discount: 0 }; } /* V3.9: order line label — variant (size/color) ke saath. */ function lineLabel(i){ const v = []; if (i.size) v.push("Size: " + i.size); if (i.color) v.push(i.color); return esc(i.name) + " × " + i.qty + (v.length? " <small>(" + v.map(esc).join(", ") + ")</small>": "");} function lineLabelPlain(i){ const v = []; if (i.size) v.push("Size: " + i.size); if (i.color) v.push(i.color); return i.name + " x" + i.qty + (v.length? " (" + v.join(", ") + ")": "");}
+async function loadOrders(){
+  const { data, error } = await sb.from("orders").select("*").eq("store_id", STORE_ID).order("id", { ascending: false });
+  const wrap = $("#ordersWrap");
+  if (error){ wrap.innerHTML = `<p class="empty-note">Orders load nahi ho sakay: ${esc(error.message)}</p>`; ORDERS_CACHE = []; renderOrderStats(); return; }
+  ORDERS_CACHE = data || [];
+  $("#statOrders").textContent = ORDERS_CACHE.length;
+  $("#statPending").textContent = ORDERS_CACHE.filter(o => o.status === "Pending").length;
+  $("#statRevenue").textContent = fmt(ORDERS_CACHE.filter(o => o.status === "Delivered").reduce((s,o) => s + Number(o.total || 0), 0));
+  renderOrderStats();
+  renderOrders();
+}
+/* Orders tab ke upar wali stats strip: 6 cards + status ki stacked bar.
+   Counts CURRENT store ke loaded orders (ORDERS_CACHE) se bante hain. */
+function renderOrderStats(){
+  const counts = {};
+  STATUSES.forEach(s => { counts[s] = ORDERS_CACHE.filter(o => o.status === s).length; });
+  const total = ORDERS_CACHE.length;
+  const statsEl = $("#orderStats");
+  if (statsEl) statsEl.innerHTML = `<div class="ostat"><strong>${total}</strong><span>Kul Orders</span></div>`
+    + STATUSES.map(s => `<div class="ostat"><strong style="color:${STATUS_COLORS[s]}">${counts[s]}</strong><span>${s}</span></div>`).join("");
+  const stackEl = $("#orderStack");
+  if (stackEl) stackEl.innerHTML = total
+    ? STATUSES.filter(s => counts[s] > 0).map(s => `<div style="width:${(counts[s] / total * 100).toFixed(2)}%;background:${STATUS_COLORS[s]}" title="${s}: ${counts[s]}"></div>`).join("")
+    : "";
+  const legendEl = $("#orderStackLegend");
+  if (legendEl) legendEl.innerHTML = total
+    ? STATUSES.map(s => `<span><i style="background:${STATUS_COLORS[s]}"></i>${s}: ${counts[s]} (${Math.round(counts[s] / total * 100)}%)</span>`).join("")
+    : `<span>Abhi tak koi order nahi aaya.</span>`;
+}
+function renderOrders(){
+  const wrap = $("#ordersWrap");
+  const q = ($("#orderSearch").value || "").trim().toLowerCase();
+  const sf = $("#orderStatusFilter").value || "";
+  const list = ORDERS_CACHE.filter(o =>
+    (!sf || o.status === sf) &&
+    (!q || String(o.customer_name || "").toLowerCase().includes(q) || String(o.phone || "").includes(q)));
+  if (!ORDERS_CACHE.length){ wrap.innerHTML = `<p class="empty-note">Abhi tak koi order nahi aaya.</p>`; return; }
+  if (!list.length){ wrap.innerHTML = `<p class="empty-note">Is search/filter par koi order nahi mila.</p>`; return; }
+  wrap.innerHTML = `<table>
+    <thead><tr><th>#</th><th>Customer</th><th>Phone / City</th><th>Address</th><th>Items</th><th>Total</th><th>Status</th><th></th></tr></thead>
+    <tbody>${list.map(o => { const lines = orderLines(o); const meta = orderMeta(o); return `<tr data-order="${o.id}">
+      <td><strong>#${o.id}</strong><br><small style="color:var(--muted)">${new Date(o.created_at).toLocaleString("en-PK",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}</small></td>
+      <td><strong>${esc(o.customer_name)}</strong></td>
+      <td>${esc(o.phone)}<br><small style="color:var(--muted)">${esc(o.city)}</small></td>
+      <td style="max-width:170px">${esc(o.address)}</td>
+      <td class="order-items">${lines.map(lineLabel).join("<br>")}${lines.some(i => i.delivery_fee !== undefined) ? `<br><small>Delivery: ${(() => { const d = lines.reduce((s,i) => s + (Number(i.delivery_fee)||0), 0); return d === 0 ? "FREE" : fmt(d); })()}</small>` : ""}${meta.coupon ? `<br><small>🎟️ Coupon ${esc(meta.coupon)}: −${fmt(meta.discount)}</small>` : ""}</td>
+      <td><strong>${fmt(o.total)}</strong></td>
+      <td><select class="status" data-status="${o.id}">${STATUSES.map(s => `<option ${s===o.status?"selected":""}>${s}</option>`).join("")}</select></td>
+      <td style="white-space:nowrap"><button class="btn small ghost" data-edit-order="${o.id}">✎ Edit</button> <button class="btn small danger" data-del-order="${o.id}">Delete</button></td>
+    </tr>`; }).join("")}</tbody></table>`;
+  wrap.querySelectorAll("[data-edit-order]").forEach(b => b.onclick = () => openOrderEdit(+b.dataset.editOrder));
+  wrap.querySelectorAll("tbody tr[data-order]").forEach(tr => tr.onclick = e => {
+    if (e.target.closest("button, select, input, a, label")) return;
+    openOrderDetails(+tr.dataset.order);
+  });
+  wrap.querySelectorAll("[data-status]").forEach(sel => sel.onchange = async () => {
+    const { error } = await sb.from("orders").update({ status: sel.value }).eq("id", +sel.dataset.status).eq("store_id", STORE_ID);
+    if (error) showToast("Status update fail: " + error.message, "err"); else { await loadOrders(); loadDashboard(); showToast("✅ Order status update ho gaya.", "ok"); }
+  });
+  wrap.querySelectorAll("[data-del-order]").forEach(b => b.onclick = async () => {
+    if (!confirm("Yeh order delete kar dein?")) return;
+    const id = +b.dataset.delOrder;
+    const msg = $("#ordersMsg");
+    b.disabled = true; b.textContent = "Deleting…";
+    msg.textContent = `Order #${id} delete ho raha hai…`; msg.className = "msg";
+    try {
+      /* .select("id") forces PostgREST to return deleted rows — sirf request
+         success par nahi, asal deleted row par bharosa karte hain. */
+      const { data: deleted, error } = await sb.from("orders").delete().eq("id", id).eq("store_id", STORE_ID).select("id");
+      if (error) throw error;
+      if (!deleted || deleted.length === 0) throw new Error("Koi row delete nahi hui — Supabase ki orders delete RLS policy ya team access check karein.");
+      msg.textContent = `✅ Order #${id} delete ho gaya.`; msg.className = "msg ok";
+      showToast(`✅ Order #${id} delete ho gaya.`, "ok");
+      await loadOrders(); loadDashboard();
+    } catch (e) {
+      msg.textContent = "Delete fail: " + e.message; msg.className = "msg err";
+      showToast("Delete fail: " + e.message, "err");
+      b.disabled = false; b.textContent = "Delete";
+    }
+  });
+}
+$("#orderSearch").addEventListener("input", renderOrders);
+$("#orderStatusFilter").addEventListener("change", renderOrders);
+
+/* ---------- Order Edit (modal) ----------
+   Orders table mein koi note/delivery_fee/discount COLUMN nahi hai:
+   delivery fee har item line ke andar (delivery_fee) hoti hai, aur
+   coupon + discount items JSON ke meta mein ({lines, coupon, discount}).
+   Purane orders plain array hain — save par shape mehfooz rakhi jati hai
+   (discount/coupon ho to object shape mein convert ho jata hai). */
+let OE_ID = null;
+let OE_COUPON = null;
+let OE_TOTAL_TOUCHED = false;
+function openOrderEdit(id){
+  const o = ORDERS_CACHE.find(x => x.id === id);
+  if (!o) return;
+  OE_ID = id;
+  OE_TOTAL_TOUCHED = false;
+  const meta = orderMeta(o);
+  OE_COUPON = meta.coupon;
+  $("#oeTitle").textContent = "#" + o.id;
+  $("#oeName").value = o.customer_name || "";
+  $("#oePhone").value = o.phone || "";
+  $("#oeCity").value = o.city || "";
+  $("#oeAddress").value = o.address || "";
+  /* V3 Part B: tracking note (orders.tracking_note) */
+  if ($("#oeTrackNote")) $("#oeTrackNote").value = o.tracking_note || "";
+  $("#oeStatus").innerHTML = STATUSES.map(s => `<option ${s === o.status ? "selected" : ""}>${s}</option>`).join("");
+  $("#oeDiscount").value = meta.discount || 0;
+  $("#oeItems").innerHTML = "";
+  const lines = orderLines(o);
+  (lines.length ? lines : [{}]).forEach(l => addOeItemRow(l));
+  oeRecalc();
+  /* Total input mein pehle order ka MAUJOODA total dikhao — items badalne
+     par hi auto hisaab usay overwrite karega (jab tak user haath na lagaye). */
+  $("#oeTotal").value = o.total ?? 0;
+  $("#oeMsg").textContent = ""; $("#oeMsg").className = "msg";
+  $("#orderEditModal").classList.remove("hidden");
+}
+function addOeItemRow(l = {}){
+  const row = document.createElement("div");
+  row.className = "oe-item";
+  if (l.id !== undefined && l.id !== null) row.dataset.pid = l.id;
+  row.innerHTML = `<input type="text" data-oe="name" value="${esc(l.name || "")}" placeholder="Product naam">
+    <input type="number" data-oe="qty" min="0" value="${l.qty ?? 1}">
+    <input type="number" data-oe="price" min="0" value="${l.price ?? 0}">
+    <input type="number" data-oe="fee" min="0" value="${l.delivery_fee ?? 0}">
+    <input type="text" data-oe="size" value="${esc(l.size || "")}" placeholder="Size"> <input type="text" data-oe="color" value="${esc(l.color || "")}" placeholder="Color"> <button class="btn small danger" type="button" data-oe-del title="Item hatayein">✕</button>`;
+  row.querySelectorAll("input").forEach(inp => inp.addEventListener("input", oeRecalc));
+  row.querySelector("[data-oe-del]").onclick = () => { row.remove(); oeRecalc(); };
+  $("#oeItems").appendChild(row);
+}
+function oeReadItems(){
+  return [...$("#oeItems").querySelectorAll(".oe-item")].map(r => {
+    const g = k => r.querySelector(`[data-oe="${k}"]`).value;
+    const item = {
+      name: g("name").trim(),
+      qty: Math.max(0, parseInt(g("qty")) || 0),
+      price: Math.max(0, parseInt(g("price")) || 0),
+      delivery_fee: Math.max(0, parseInt(g("fee")) || 0), size: g("size").trim(), color: g("color").trim()
+    };
+    if (r.dataset.pid) item.id = isNaN(+r.dataset.pid) ? r.dataset.pid : +r.dataset.pid;
+    /* Checkout wali line shape: { id, name, price, qty, delivery_fee } + V3.9 size/color (hon to). */
+    const out = item.id !== undefined
+      ? { id: item.id, name: item.name, price: item.price, qty: item.qty, delivery_fee: item.delivery_fee }
+      : { name: item.name, price: item.price, qty: item.qty, delivery_fee: item.delivery_fee }; if (item.size) out.size = item.size; if (item.color) out.color = item.color; return out;
+  }).filter(i => i.name || i.price > 0 || i.qty > 0);
+}
+function oeComputed(){
+  const items = oeReadItems();
+  const sub = items.reduce((s, i) => s + i.price * i.qty, 0);
+  const del = items.reduce((s, i) => s + (Number(i.delivery_fee) || 0), 0);
+  const disc = Math.max(0, parseInt($("#oeDiscount").value) || 0);
+  return { items, sub, del, disc, total: Math.max(0, sub + del - disc) };
+}
+function oeRecalc(){
+  const c = oeComputed();
+  if (!OE_TOTAL_TOUCHED) $("#oeTotal").value = c.total;
+  $("#oeCalcNote").textContent = `Hisaab: Items ${fmt(c.sub)} + Delivery ${fmt(c.del)} − Discount ${fmt(c.disc)} = ${fmt(c.total)}${OE_COUPON ? ` • 🎟️ Coupon: ${OE_COUPON}` : ""}${OE_TOTAL_TOUCHED ? " • Total haath se likha gaya hai (auto hisaab band)" : ""}`;
+}
+$("#oeTotal").addEventListener("input", () => { OE_TOTAL_TOUCHED = true; oeRecalc(); });
+$("#oeDiscount").addEventListener("input", oeRecalc);
+$("#oeAddItem").onclick = () => { addOeItemRow({}); oeRecalc(); };
+$("#oeCancelBtn").onclick = () => $("#orderEditModal").classList.add("hidden");
+$("#orderEditModal").addEventListener("click", e => { if (e.target.id === "orderEditModal") e.currentTarget.classList.add("hidden"); });
+$("#oeSaveBtn").onclick = async () => {
+  if (OE_ID == null) return;
+  const btn = $("#oeSaveBtn");
+  const msg = $("#oeMsg");
+  const orig = ORDERS_CACHE.find(x => x.id === OE_ID);
+  const c = oeComputed();
+  const hasMeta = c.disc > 0 || !!OE_COUPON;
+  const items = (orig && Array.isArray(orig.items) && !hasMeta)
+    ? c.items
+    : { lines: c.items, coupon: OE_COUPON, discount: c.disc };
+  const payload = {
+    customer_name: $("#oeName").value.trim(),
+    phone: $("#oePhone").value.trim(),
+    city: $("#oeCity").value.trim(),
+    address: $("#oeAddress").value.trim(),
+    tracking_note: $("#oeTrackNote") ? $("#oeTrackNote").value.trim() : undefined,
+    status: $("#oeStatus").value,
+    items,
+    total: Math.max(0, parseInt($("#oeTotal").value) || 0)
+  };
+  if (!payload.customer_name){ msg.textContent = "Customer name khaali nahi ho sakta."; msg.className = "msg err"; return; }
+  btn.disabled = true; btn.textContent = "Saving…";
+  try {
+    const { error } = await sb.from("orders").update(payload).eq("id", OE_ID).eq("store_id", STORE_ID);
+    if (error) throw error;
+    $("#orderEditModal").classList.add("hidden");
+    const om = $("#ordersMsg");
+    om.textContent = `✅ Order #${OE_ID} update ho gaya.`; om.className = "msg ok";
+    showToast(`✅ Order #${OE_ID} update ho gaya.`, "ok");
+    await loadOrders(); loadDashboard();
+  } catch (e) {
+    msg.textContent = "Order save fail: " + e.message; msg.className = "msg err";
+    showToast("Order save fail: " + e.message, "err");
+  } finally {
+    btn.disabled = false; btn.textContent = "💾 Order Save karein";
+  }
+};
+
+/* ------------ Order Details (read-only modal) ------------
+   Orders tab ki row par click → popup mein order ki poori detail.
+   Read-only hai – kuch save nahi hota; Edit button maujooda
+   #orderEditModal kholta hai. Data ORDERS_CACHE se aata hai. */
+let OD_ID = null;
+function closeOrderDetails(){
+  OD_ID = null;
+  const m = $("#orderDetailsModal");
+  if (m) m.classList.add("hidden");
+}
+function openOrderDetails(id){
+  const o = ORDERS_CACHE.find(x => x.id === id);
+  if (!o) return;
+  if (!$("#orderDetailsModal") || !$("#odBody") || !$("#odTitle")) return;
+  OD_ID = id;
+  const lines = orderLines(o);
+  const meta = orderMeta(o);
+  const sub = lines.reduce((s, l) => s + (Number(l.price) || 0) * (Number(l.qty) || 0), 0);
+  const del = lines.reduce((s, l) => s + (Number(l.delivery_fee) || 0), 0);
+  const disc = meta.discount || 0;
+  const computed = Math.max(0, sub + del - disc);
+  const storedTotal = Number(o.total) || 0;
+  const hasFee = lines.some(l => l.delivery_fee !== undefined && l.delivery_fee !== null);
+  const dateStr = o.created_at ? new Date(o.created_at).toLocaleString("en-PK", { weekday: "short", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" }) : "—";
+  const pillColor = STATUS_COLORS[o.status] || "#64748b";
+  $("#odTitle").textContent = "#" + o.id;
+  $("#odBody").innerHTML = `<div class="od-kv">
+    <div><small>Store</small><strong>${esc(STORE_NAME || STORE_SLUG || "—")}</strong></div>
+    <div><small>Date</small><strong>${esc(dateStr)}</strong></div>
+    <div><small>Status</small><span class="pill" style="background:${pillColor};color:#fff">${esc(o.status || "—")}</span></div>
+    <div><small>Order ID</small><strong>#${esc(o.id)}</strong></div>
+    <div><small>Customer</small><strong>${esc(o.customer_name || "—")}</strong></div>
+    <div><small>Phone</small><strong>${esc(o.phone || "—")}</strong></div>
+    <div><small>City</small><strong>${esc(o.city || "—")}</strong></div>
+    <div class="wide"><small>Address</small><strong>${esc(o.address || "—")}</strong></div>
+    <div class="wide"><small>Tracking note</small><strong>${esc(o.tracking_note || "—")}</strong></div>
+  </div>
+  <label style="font-size:12px;font-weight:700;color:var(--muted)">Items</label>
+  ${lines.length ? `<div class="od-items"><div class="od-head"><span>Product</span><span>Qty × Price</span><span>Total</span></div>${lines.map(l => {
+    const v = [];
+    if (l.size) v.push("Size: " + l.size);
+    if (l.color) v.push("Color: " + l.color);
+    const fee = (l.delivery_fee !== undefined && l.delivery_fee !== null) ? `<small>Delivery: ${Number(l.delivery_fee) === 0 ? "FREE" : fmt(l.delivery_fee)}</small>` : "";
+    return `<div class="od-item"><span class="od-name">${esc(l.name || "—")}${v.length ? `<small>(${v.map(esc).join(", ")})</small>` : ""}${fee}</span><span class="od-num">${Number(l.qty) || 0} × ${fmt(l.price)}</span><span class="od-num"><strong>${fmt((Number(l.price) || 0) * (Number(l.qty) || 0))}</strong></span></div>`;
+  }).join("")}</div>` : `<p class="empty-note">Is order mein koi item nahi hai.</p>`}
+  <div>
+    <div class="od-sumrow"><span>Items subtotal</span><strong>${fmt(sub)}</strong></div>
+    <div class="od-sumrow"><span>Delivery</span><strong>${hasFee ? (del === 0 ? "FREE" : fmt(del)) : "—"}</strong></div>
+    ${disc > 0 ? `<div class="od-sumrow"><span>Discount${meta.coupon ? ` (🎟️ ${esc(meta.coupon)})` : ""}</span><strong>− ${fmt(disc)}</strong></div>` : ""}
+    <div class="od-sumrow total"><span>Total</span><strong>${fmt(storedTotal)}</strong></div>
+  </div>
+  ${computed !== storedTotal ? `<p class="hint">Note: items ke hisaab se ${fmt(computed)} banta hai — Total haath se ${fmt(storedTotal)} likha gaya hai.</p>` : ""}`;
+$("#orderDetailsModal").classList.remove("hidden");
+const cb = $("#odCloseBtn");
+if (cb) cb.focus({ preventScroll: true });
+}
+const odCloseBtn = $("#odCloseBtn");
+if (odCloseBtn) odCloseBtn.onclick = () => closeOrderDetails();
+const odEditBtn = $("#odEditBtn");
+if (odEditBtn) odEditBtn.onclick = () => { const id = OD_ID; closeOrderDetails(); if (id != null) openOrderEdit(id); };
+const odModal = $("#orderDetailsModal");
+if (odModal) odModal.addEventListener("click", e => { if (e.target.id === "orderDetailsModal") closeOrderDetails(); });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeOrderDetails(); });
+
+/* ---------- Products ---------- */
+async function loadProducts(){
+  const { data, error } = await sb.from("products").select("*").eq("store_id", STORE_ID).order("id", { ascending: true });
+  const wrap = $("#productsWrap");
+  if (error){ wrap.innerHTML = `<p class="empty-note">Products load nahi ho sakay: ${esc(error.message)}</p>`; return; }
+  PRODUCTS_CACHE = data || [];
+  $("#statProducts").textContent = PRODUCTS_CACHE.length;
+  renderLowStock();
+  refreshCatList();
+  renderProductsList();
+  /* Edit form khula ho to usay fresh data se dobara bhar dein (save ke baad). */
+  if (EDITING_PRODUCT_ID != null){
+    const p = PRODUCTS_CACHE.find(x => x.id === EDITING_PRODUCT_ID);
+    if (p) fillProductForm(p); else closeProductForm();
+  }
+}
+/* ---------- Bulk delete + Storage cleanup ---------- */
+let BULK_SELECTED = new Set();
+/* Product row delete + us ki (ghair-shared) images Storage se delete.
+   Storage fail ho to bhi product delete hi rehta hai — sirf us image ki
+   file reh jati hai (dobara delete par phir try hogi). Kisi doosre product
+   mein lagi image kabhi delete nahi hoti (shared-image guard). */
+async function deleteProductAndImages(id){
+  const p = PRODUCTS_CACHE.find(x => x.id === id);
+  const { error } = await sb.from("products").delete().eq("id", id).eq("store_id", STORE_ID);
+  if (error) throw error;
+  if (!p) return { images: 0 };
+  const urls = [];
+  if (p.img) urls.push(p.img);
+  if (Array.isArray(p.gallery)) urls.push(...p.gallery);
+  const own = [];
+  for (const u of urls){
+    const i = String(u).indexOf("/product-images/");
+    if (i >= 0) own.push({ url: u, path: String(u).slice(i + "/product-images/".length).split("?")[0] });
+  }
+  if (!own.length) return { images: 0 };
+  let others = PRODUCTS_CACHE.filter(x => x.id !== id);
+  try {
+    const { data, error: qErr } = await sb.from("products").select("id,img,gallery").neq("id", id);
+    if (!qErr && Array.isArray(data)) others = data;
+  } catch (e) {}
+  const drop = own.filter(o => !others.some(x => x.img === o.url || (Array.isArray(x.gallery) && x.gallery.includes(o.url))));
+  const paths = [...new Set(drop.map(o => o.path))];
+  if (!paths.length) return { images: 0 };
+  const { error: sErr } = await sb.storage.from("product-images").remove(paths);
+  if (sErr) return { images: 0, storageWarn: true };
+  return { images: paths.length };
+}
+/* Products LIST (Shopify-style table) — Edit par upar wala card form khulta hai. */
+function renderProductsList(){
+  const wrap = $("#productsWrap");
+    BULK_SELECTED = new Set([...BULK_SELECTED].filter(id => PRODUCTS_CACHE.some(p => p.id === id)));
+  const q = ($("#prodSearch").value || "").trim().toLowerCase();
+  const list = PRODUCTS_CACHE.filter(p => !q
+    || String(p.name || "").toLowerCase().includes(q)
+    || String(p.cat || "").toLowerCase().includes(q));
+  $("#prodCount").textContent = PRODUCTS_CACHE.length ? `${list.length} / ${PRODUCTS_CACHE.length} products` : "";
+  if (!PRODUCTS_CACHE.length){ wrap.innerHTML = `<p class="empty-note">Abhi koi product nahi hai — upar "Add New Product" se pehla product banayein.</p>`; return; }
+  if (!list.length){ wrap.innerHTML = `<p class="empty-note">Is search par koi product nahi mila.</p>`; return; }
+  wrap.innerHTML = `<div style="display:flex;gap:10px;align-items:center;margin-bottom:10px;flex-wrap:wrap"><label style="display:flex;gap:6px;align-items:center;cursor:pointer;font-weight:600;font-size:14px"><input type="checkbox" id="bulkCheckAll"> Sab select karein</label><span id="bulkCount" style="color:var(--muted);font-size:13.5px;font-weight:600"></span><button class="btn small danger" id="bulkDelBtn" type="button" disabled>🗑 Selected delete karein</button><span style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;border-left:1.5px solid var(--line);padding-left:10px"><select id="bulkEditField" style="border:1.5px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px"><option value="">Bulk edit…</option><option value="stock-in">Stock → In Stock</option><option value="stock-out">Stock → Out of Stock</option><option value="live-on">Live → Show</option><option value="live-off">Live → Hide</option><option value="featured-on">Featured → On</option><option value="featured-off">Featured → Off</option><option value="price-up">Price → +% barhayein</option><option value="price-down">Price → -% kam karein</option></select><input id="bulkEditVal" type="number" min="1" max="90" placeholder="%" style="width:70px;border:1.5px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;display:none"><button class="btn small" id="bulkEditBtn" type="button" disabled>Apply</button></span></div><table>
+    <thead><tr><th></th><th>Photo</th><th>Product</th><th>Category</th><th>Price</th><th>Stock</th><th>Live</th><th>Featured</th><th></th></tr></thead>
+    <tbody>${list.map(p => `<tr>
+      <td><input type="checkbox" data-bulk-check="${p.id}" ${BULK_SELECTED.has(p.id) ? "checked" : ""}></td>
+      <td><img class="prod-thumb" src="${safeUrl(p.img || PLACEHOLDER_IMG)}" alt=""></td>
+      <td><strong>${esc(p.name || "")}</strong><br><small style="color:var(--muted)">#${p.id}</small></td>
+      <td>${esc(p.cat || "General")}</td>
+      <td><strong>${fmt(p.price)}</strong>${p.old ? `<br><small style="color:var(--muted);text-decoration:line-through">${fmt(p.old)}</small>` : ""}</td>
+      <td>${p.stock === "out" ? `<span class="pill grey">⛔ Out of Stock</span>` : `<span class="pill green">In Stock</span>`}</td>
+      <td>${p.active ? `<span class="pill green">Live</span>` : `<span class="pill grey">Hidden</span>`}</td>
+      <td>${p.featured ? `<span class="star-on" title="Featured">★</span>` : `<span class="star-off" title="Featured nahi">★</span>`}</td>
+      <td style="white-space:nowrap"><button class="btn small" data-edit-prod="${p.id}">✎ Edit</button> <button class="btn small danger" data-del-prod="${p.id}">Delete</button></td>
+    </tr>`).join("")}</tbody></table>`;
+  wrap.querySelectorAll("[data-edit-prod]").forEach(b => b.onclick = () => openProductForm(+b.dataset.editProd));
+  /* Bulk select wiring — selection search badalne par bhi mehfooz rehti hai. */
+  const bulkCount = wrap.querySelector("#bulkCount");
+  const bulkBtn = wrap.querySelector("#bulkDelBtn");
+  const checkAll = wrap.querySelector("#bulkCheckAll");
+  /* Bulk edit controls — selection par stock/live/featured/price ek saath. */
+  const editField = wrap.querySelector("#bulkEditField");
+  const editVal = wrap.querySelector("#bulkEditVal");
+  const editBtn = wrap.querySelector("#bulkEditBtn");
+  const syncEditBtn = () => {
+    const f = editField.value;
+    const needPct = f === "price-up" || f === "price-down";
+    editVal.style.display = needPct ? "" : "none";
+    editBtn.disabled = !f || !BULK_SELECTED.size || (needPct && !(parseFloat(editVal.value) > 0));
+  };
+  const syncBulk = () => {
+    const n = BULK_SELECTED.size;
+    bulkCount.textContent = n ? `${n} selected` : "";
+    bulkBtn.disabled = !n;
+    bulkBtn.textContent = n ? `🗑 ${n} selected delete karein` : "🗑 Selected delete karein";
+    const boxes = [...wrap.querySelectorAll("[data-bulk-check]")];
+    checkAll.checked = boxes.length > 0 && boxes.every(b => BULK_SELECTED.has(+b.dataset.bulkCheck));
+    checkAll.indeterminate = boxes.some(b => BULK_SELECTED.has(+b.dataset.bulkCheck)) && !checkAll.checked;
+    syncEditBtn();
+  };
+  wrap.querySelectorAll("[data-bulk-check]").forEach(cb => cb.addEventListener("change", () => {
+    const id = +cb.dataset.bulkCheck;
+    if (cb.checked) BULK_SELECTED.add(id); else BULK_SELECTED.delete(id);
+    syncBulk();
+  }));
+  checkAll.addEventListener("change", () => {
+    wrap.querySelectorAll("[data-bulk-check]").forEach(cb => {
+      const id = +cb.dataset.bulkCheck;
+      if (checkAll.checked) BULK_SELECTED.add(id); else BULK_SELECTED.delete(id);
+      cb.checked = checkAll.checked;
+    });
+    syncBulk();
+  });
+  editField.addEventListener("change", syncEditBtn);
+  editVal.addEventListener("input", syncEditBtn);
+  editBtn.onclick = async () => {
+    const ids = [...BULK_SELECTED];
+    const f = editField.value;
+    if (!ids.length || !f) return;
+    const pct = parseFloat(editVal.value) || 0;
+    const label = editField.options[editField.selectedIndex].text;
+    if (!confirm(`${ids.length} products par ye lagayein: ${label}${(f === "price-up" || f === "price-down") ? " (" + pct + "%)" : ""}?`)) return;
+    editBtn.disabled = true; editBtn.textContent = "Applying…";
+    let ok = 0, fail = 0;
+    for (const id of ids){
+      const p = PRODUCTS_CACHE.find(x => x.id === id);
+      let patch = null;
+      if (f === "stock-in") patch = { stock: "in" };
+      else if (f === "stock-out") patch = { stock: "out" };
+      else if (f === "live-on") patch = { active: true };
+      else if (f === "live-off") patch = { active: false };
+      else if (f === "featured-on") patch = { featured: true };
+      else if (f === "featured-off") patch = { featured: false };
+      else if ((f === "price-up" || f === "price-down") && p){
+        const np = Math.max(0, Math.round((p.price || 0) * (f === "price-up" ? (1 + pct / 100) : (1 - pct / 100))));
+        patch = { price: np };
+      }
+      if (!patch){ fail++; continue; }
+      const { error } = await sb.from("products").update(patch).eq("id", id).eq("store_id", STORE_ID);
+      if (error) fail++; else ok++;
+    }
+    loadProducts();
+    if (fail) showToast(`${ok} products update huin, ${fail} fail huin.`, (fail && !ok) ? "err" : "info");
+    else showToast(`✅ ${ok} products update ho gayin (${label}).`, "ok");
+  };
+  bulkBtn.onclick = async () => {
+    const ids = [...BULK_SELECTED];
+    if (!ids.length) return;
+    if (!confirm(`${ids.length} products delete kar dein? Ye wapas nahi aayega — un ki images bhi Storage se delete ho jayengi (jo kisi doosre product mein lagi hon wo mehfooz rahengi).`)) return;
+    bulkBtn.disabled = true; bulkBtn.textContent = "Deleting…";
+    let ok = 0, fail = 0, imgs = 0;
+    for (const id of ids){
+      try {
+        const r = await deleteProductAndImages(id);
+        ok++; imgs += r.images;
+        PRODUCTS_CACHE = PRODUCTS_CACHE.filter(x => x.id !== id);
+        if (EDITING_PRODUCT_ID === id) closeProductForm();
+      } catch (e) { fail++; }
+    }
+    BULK_SELECTED.clear();
+    loadProducts();
+    if (fail) showToast(`${ok} products delete huin, ${fail} fail huin.` + (imgs ? ` ${imgs} images bhi Storage se delete huin (space wapas mili).` : ""), (fail && !ok) ? "err" : "info");
+    else showToast(`✅ ${ok} products delete ho gayin.` + (imgs ? ` ${imgs} images bhi Storage se delete huin — space wapas mil gayi.` : ""), "ok");
+  };
+  syncBulk();
+  wrap.querySelectorAll("[data-del-prod]").forEach(b => b.onclick = async () => {
+    if (!confirm("Yeh product delete kar dein?")) return;
+    const id = +b.dataset.delProd;
+    try {
+      const r = await deleteProductAndImages(id);
+      if (EDITING_PRODUCT_ID === id) closeProductForm();
+      loadProducts();
+      showToast("✅ Product delete ho gaya." + (r.images ? ` ${r.images} image${r.images > 1 ? "s" : ""} bhi Storage se delete huin — space wapas mil gayi.` : ""), "ok");
+    } catch (e) { showToast("Delete fail: " + e.message, "err"); }
+  });
+}
+$("#prodSearch").addEventListener("input", renderProductsList);
+function openProductForm(id){
+  const p = PRODUCTS_CACHE.find(x => x.id === id);
+  if (!p) return;
+  EDITING_PRODUCT_ID = id;
+  fillProductForm(p);
+  $("#productFormWrap").classList.remove("hidden");
+  $("#productFormWrap").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function fillProductForm(p){
+  const wrap = $("#productFormWrap");
+  wrap.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:10px"><h4 style="margin:0">✎ Product Edit — ${esc(p.name || "")}</h4><button class="btn small ghost" id="closeProdForm" type="button">✕ Form band karein</button></div>`
+    + `<div class="prod-grid" style="grid-template-columns:1fr">${prodCard(p)}</div>`;
+  bindProdCards(wrap);
+  $("#closeProdForm").onclick = closeProductForm;
+}
+function closeProductForm(){
+  EDITING_PRODUCT_ID = null;
+  $("#productFormWrap").innerHTML = "";
+  $("#productFormWrap").classList.add("hidden");
+}
+function refreshCatList(){
+  const fromProducts = PRODUCTS_CACHE.map(p => p.cat).filter(Boolean);
+  const fromTable = CATEGORIES_CACHE.map(c => c.name).filter(Boolean);
+  const cats = [...new Set([...fromTable, ...fromProducts])];
+  $("#catList").innerHTML = cats.map(c => `<option value="${esc(c)}">`).join("");
+}
+/* V3.9: product.options <-> form strings (sizes "S, M, L, XL"; colors "Maroon #7F1D1D, Green #0B3D2E"). */ function optionsOf(p){ const o = (p && p.options && typeof p.options === "object")? p.options: {}; return { sizes: Array.isArray(o.sizes)? o.sizes.map(s => String(s).trim()).filter(Boolean): [], colors: Array.isArray(o.colors)? o.colors.filter(c => c && typeof c === "object" && String(c.name || "").trim()).map(c => ({ name: String(c.name).trim(), hex: /^#[0-9a-fA-F]{6}$/.test(String(c.hex || ""))? String(c.hex): "#8A8A8A"})): []};} function sizesStr(p){ return optionsOf(p).sizes.join(", ");} function colorsStr(p){ return optionsOf(p).colors.map(c => c.name + " " + c.hex).join(", ");} function parseSizes(str){ return String(str || "").split(",").map(s => s.trim()).filter(Boolean).slice(0, 12);} function parseColors(str){ return String(str || "").split(",").map(s => s.trim()).filter(Boolean).map(part => { const m = part.match(/^(.*?)\s*(#[0-9a-fA-F]{6})\s*$/); if (m) return { name: m[1].trim(), hex: m[2]}; return { name: part, hex: "#8A8A8A"};}).filter(c => c.name).slice(0, 12);} /* Gallery URL inputs — product ki jitni gallery images hon, utne inputs
+   (kam se kam 3). Multi-upload ya drag-reorder se zyada images banen to
+   inputs khud barh jate hain, taa ke save par koi image gum na ho. */
+function galleryInputs(p){
+  const g = Array.isArray(p.gallery) ? p.gallery : [];
+  const slots = Math.max(3, g.length);
+  let h = "";
+  for (let i = 0; i < slots; i++) h += `<input data-f="gallery${i+1}" value="${esc(g[i] || "")}" placeholder="Extra image ${i+1} URL (optional)">`;
+  return h;
+}
+function prodCard(p){
+  const out = p.stock === "out";
+  return `<div class="prod" data-id="${p.id}">
+    <img class="img-preview" data-preview src="${safeUrl(p.img || PLACEHOLDER_IMG)}" alt="">
+    <div class="badges-row">${p.featured ? `<span class="pill green">⭐ Featured</span>` : ""}${out ? `<span class="pill grey">⛔ Out of Stock</span>` : `<span class="pill green">✅ In Stock</span>`}</div>
+    <label>Product name</label><input data-f="name" value="${esc(p.name||"")}">
+    <div class="row2">
+      <div><label>Price (Rs)</label><input data-f="price" type="number" value="${p.price||0}"></div>
+      <div><label>Old price (Rs, optional)</label><input data-f="old" type="number" value="${p.old||""}"></div>
+    </div>
+    <div class="row2">
+      <div><label>Category (choose ya nayi type karein)</label><input data-f="cat" list="catList" value="${esc(p.cat||"")}"></div>
+      <div><label>Show on store?</label><select data-f="active"><option value="true" ${p.active?"selected":""}>Yes — live</option><option value="false" ${!p.active?"selected":""}>No — hidden</option></select></div>
+    </div>
+    <div class="row2">
+      <div><label>📦 Stock</label><select data-f="stock"><option value="in" ${!out?"selected":""}>In Stock</option><option value="out" ${out?"selected":""}>Out of Stock</option></select></div>
+      <div><label>⭐ Featured (Best Sellers mein pehle)</label><label class="checkline" style="margin-top:2px"><input data-f="featured" type="checkbox" ${p.featured?"checked":""}> Featured product hai</label></div>
+    </div>
+    <div class="row2">
+      <div><label>⭐ Rating (0 – 5)</label><input data-f="rating" type="number" step="0.1" min="0" max="5" value="${p.rating ?? 4.5}"></div>
+      <div><label>Reviews (number)</label><input data-f="reviews" type="number" min="0" value="${p.reviews||0}"></div>
+    </div>
+    <div class="row2">
+      <div><label>🚚 Delivery fee (Rs) — is product par</label><input data-f="delivery_fee" type="number" min="0" value="${p.delivery_fee||0}"></div>
+      <div><label>🏷️ Discount % badge (0–90)</label><input data-f="discount_pct" type="number" min="0" max="90" value="${p.discount_pct ?? ""}" placeholder="Auto (price se)"></div>
+    </div>
+    <p class="hint">Delivery fee: 0 = is product par <strong>FREE delivery</strong>; fee product par ek dafa lagti hai, quantity par nahi.</p>
+    <p class="hint">Discount badge: khali/0 chor dein to badge price/old price se <strong>auto hisaab</strong> hoga; koi number likhein to card aur product page par <strong>wohi % badge</strong> nazar aayega.</p>
+     <div class="row2"> <div><label>👗 Sizes (comma se alag — khaali = size nahi dikhega)</label><input data-f="sizes" value="${esc(sizesStr(p))}" placeholder="S, M, L, XL"></div> <div><label>🎨 Colors (naam + hex — khaali = color nahi dikhega)</label><input data-f="colors" value="${esc(colorsStr(p))}" placeholder="Maroon #7F1D1D, Green #0B3D2E"></div> </div> <p class="hint">Sizes/colors sirf is product ke liye hain — product page par pills/swatches banenge. Content tab se sizes ya colors poore store ke liye band bhi kiye ja sakte hain.</p> <div class="row2"> <div><label>🧵 Fabric (kapra — jaise Lawn, Chiffon)</label><input data-f="fabric" value="${esc(p.fabric || "")}" placeholder="Lawn"></div> </div> <label>📷 Product images upload (ek saath kai select karein)</label><input data-file="imgfile" type="file" accept="image/*" multiple>
+    <p class="upload-msg" data-upload-msg>Files select karein to Save dabane par upload hongi. 1 file ho to sirf main image badlegi; 2 ya zyada hon to yehi poori image set ban jayegi (pehli main, baaki gallery). Koi file na ho to neeche wala URL use hoga.</p>
+    <label>Ya image URL paste karein</label><input data-f="img" value="${esc(p.img||"")}" placeholder="https://…">
+    <label>🖼️ Extra images (card par swipe hongi — V3.6 gallery)</label><div data-gallery-wrap>${galleryInputs(p)}</div><p class="hint">Extra image ho to product card par image swipe hogi (dots + auto-rotate) — FunBug ke bestseller cards ki tarah. Khaali chor dein to sirf main image dikhegi.</p>
+    <label>↕️ Images ki tartib (pehli = main)</label><div class="img-order" data-img-order style="display:flex;gap:8px;flex-wrap:wrap"></div>
+    <p class="hint">Desktop par image ko drag karke aage-peeche karein, mobile par ▲▼ buttons dabayein, phir Save karein — pehli image main hogi, baaki gallery mein swipe hongi.</p><label>Description</label><textarea data-f="desc" rows="6">${esc(p.desc||"")}</textarea>
+    <p class="hint">Ye text product page par 'Product Details' mein nazar aayega — khaali line chorne se naya paragraph banta hai.</p>
+    <div class="actions">
+      <button class="btn small" data-save="${p.id}">💾 Save</button>
+      <button class="btn small danger" data-del="${p.id}">Delete</button>
+    </div>
+  </div>`;
+}
+/* ---------- Product images ki tartib (drag-reorder) ---------- */
+/* Strip mein product ki saari images (main + gallery, jitni bhi hon) thumbs
+   ki shakal mein. Desktop par HTML5 drag, mobile par ▲▼ buttons (touch par
+   drag nahi chalta). Har tabdeeli foran img + gallery inputs mein likhi
+   jati hai, Save par persist hoti hai. */
+function imgOrderList(card){
+  const arr = [];
+  const main = card.querySelector('[data-f="img"]').value.trim();
+  if (main) arr.push(main);
+  card.querySelectorAll('[data-gallery-wrap] input').forEach(el => {
+    const v = el.value.trim();
+    if (v) arr.push(v);
+  });
+  return arr;
+}
+function writeImgOrder(card, arr){
+  card.querySelector('[data-f="img"]').value = arr[0] || "";
+  const wrap = card.querySelector('[data-gallery-wrap]');
+  const rest = arr.slice(1);
+  let inputs = wrap.querySelectorAll('input');
+  while (inputs.length < rest.length){
+    const el = document.createElement('input');
+    el.setAttribute('data-f', 'gallery' + (inputs.length + 1));
+    el.placeholder = 'Extra image ' + (inputs.length + 1) + ' URL (optional)';
+    wrap.appendChild(el);
+    inputs = wrap.querySelectorAll('input');
+  }
+  inputs.forEach((el, i) => { el.value = rest[i] || ""; });
+  const prev = card.querySelector('[data-preview]');
+  if (prev) prev.src = arr[0] || PLACEHOLDER_IMG;
+}
+function renderImgOrder(card){
+  const strip = card.querySelector('[data-img-order]');
+  if (!strip) return;
+  const arr = imgOrderList(card);
+  if (!arr.length){ strip.innerHTML = '<span class="hint">Koi image nahi — pehle image upload karein ya URL paste karein.</span>'; return; }
+  let dragIdx = -1;
+  strip.innerHTML = arr.map((u, i) => `<div draggable="true" data-idx="${i}" style="position:relative;border:2px solid #ddd;border-radius:8px;overflow:hidden;width:64px;height:64px;cursor:grab;flex:0 0 auto" title="Image ${i+1}${i===0 ? " (main)" : ""}"><img src="${safeUrl(u)}" draggable="false" style="width:100%;height:100%;object-fit:cover;display:block"><span style="position:absolute;top:0;left:0;background:#000a;color:#fff;font-size:11px;padding:1px 5px;border-radius:0 0 6px 0">${i+1}</span><span style="position:absolute;bottom:0;right:0;display:flex"><button type="button" data-move="-1" title="Ek pehle" style="background:#000a;color:#fff;border:0;padding:4px 7px;font-size:14px;line-height:1">▲</button><button type="button" data-move="1" title="Ek baad mein" style="background:#000a;color:#fff;border:0;padding:4px 7px;font-size:14px;line-height:1">▼</button></span></div>`).join("");
+  strip.querySelectorAll('[data-idx]').forEach(box => {
+    box.addEventListener('dragstart', e => { dragIdx = +box.dataset.idx; try { e.dataTransfer.setData('text/plain', String(dragIdx)); } catch (err) {} });
+    box.addEventListener('dragover', e => e.preventDefault());
+    box.addEventListener('drop', e => {
+      e.preventDefault();
+      let from = dragIdx;
+      if (from < 0){ try { from = +e.dataTransfer.getData('text/plain'); } catch (err) {} }
+      const to = +box.dataset.idx;
+      if (from === to || isNaN(from)) return;
+      const a = imgOrderList(card);
+      const [it] = a.splice(from, 1);
+      a.splice(to, 0, it);
+      writeImgOrder(card, a);
+      renderImgOrder(card);
+    });
+  });
+  strip.querySelectorAll('[data-move]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const box = btn.closest('[data-idx]');
+      const i = +box.dataset.idx, d = +btn.dataset.move;
+      const a = imgOrderList(card);
+      const j = i + d;
+      if (j < 0 || j >= a.length) return;
+      [a[i], a[j]] = [a[j], a[i]];
+      writeImgOrder(card, a);
+      renderImgOrder(card);
+    });
+  });
+}
+function bindProdCards(wrap){
+  wrap.querySelectorAll(".prod").forEach(card => {
+    const preview = card.querySelector("[data-preview]");
+    const urlInput = card.querySelector('[data-f="img"]');
+    const fileInput = card.querySelector('[data-file="imgfile"]');
+    const msg = card.querySelector("[data-upload-msg]");
+    urlInput.addEventListener("input", () => { preview.src = urlInput.value.trim() || PLACEHOLDER_IMG; });
+    fileInput.addEventListener("change", () => {
+      const files = fileInput.files ? Array.from(fileInput.files) : [];
+      if (!files.length) return;
+      preview.src = URL.createObjectURL(files[0]);
+      setUploadMsg(msg, `${files.length} image${files.length > 1 ? "s" : ""} selected — Save dabane par upload hongi.` + (files.length === 1 ? " Sirf main image badlegi." : " Yehi poori image set ban jayegi (pehli main, baaki gallery).") + (files.length > 10 ? " Sirf pehli 10 li jayengi." : ""));
+    });
+    renderImgOrder(card);
+    card.addEventListener("input", e => {
+      if (e.target.matches('[data-f="img"]') || e.target.closest('[data-gallery-wrap]')) renderImgOrder(card);
+    });
+  });
+  wrap.querySelectorAll("[data-save]").forEach(b => b.onclick = async () => {
+    const card = b.closest(".prod");
+    const get = f => card.querySelector(`[data-f="${f}"]`).value;
+    const msg = card.querySelector("[data-upload-msg]");
+    const fileInput = card.querySelector('[data-file="imgfile"]');
+    const files = fileInput.files ? Array.from(fileInput.files) : [];
+    let imageUrl = get("img").trim();
+    const oldLabel = b.textContent;
+    b.disabled = true; b.textContent = files.length ? "Uploading…" : "Saving…";
+    if (files.length){
+      try {
+        const take = files.slice(0, 10);
+        setUploadMsg(msg, take.length + " image" + (take.length > 1 ? "s" : "") + " upload ho rahi " + (take.length > 1 ? "hain" : "hai") + "…");
+        let totalBefore = 0, totalAfter = 0;
+        const urls = [];
+        for (const f of take){
+          totalBefore += f.size;
+          urls.push(await uploadImage(f, `products/${b.dataset.save}`));
+          if (LAST_UPLOAD_INFO) totalAfter += LAST_UPLOAD_INFO.after;
+        }
+        if (take.length === 1){
+        imageUrl = urls[0];
+        card.querySelector('[data-f="img"]').value = imageUrl;
+        card.querySelector("[data-preview]").src = imageUrl;
+        } else {
+          writeImgOrder(card, urls);
+          imageUrl = urls[0];
+        }
+        let doneNote = `✅ ${urls.length} image${urls.length > 1 ? "s" : ""} upload complete — ab product save ho raha hai.`;
+                 if (totalAfter > 0 && totalAfter < totalBefore){
+                              const pct = Math.round((1 - totalAfter / totalBefore) * 100);
+                              doneNote += ` Compress hui: ${fmtSize(totalBefore)} → ${fmtSize(totalAfter)} (${pct}% chhoti).`;
+                 }
+                 if (take.length > 1) doneNote += " Yehi poori image set ban gayi (pehli main, baaki gallery).";
+        if (files.length > 10) doneNote += " Sirf pehli 10 li gayin.";
+        setUploadMsg(msg, doneNote, "ok");
+      } catch (e) {
+        setUploadMsg(msg, "Upload fail: " + e.message, "err");
+        showToast("Image upload fail — product save nahi kiya gaya: " + e.message, "err");
+        b.disabled = false; b.textContent = oldLabel;
+        return;
+      }
+    }
+    const discountRaw = get("discount_pct").trim();
+    const discountNum = discountRaw === "" ? 0 : parseInt(discountRaw);
+    const payload = {
+      name: get("name").trim(),
+      price: parseInt(get("price")) || 0,
+      old: get("old") ? parseInt(get("old")) : null,
+      cat: get("cat").trim() || "General",
+      stock: get("stock") === "out" ? "out" : "in",
+      featured: !!card.querySelector('[data-f="featured"]').checked,
+      rating: Math.min(5, Math.max(0, parseFloat(get("rating")) || 0)),
+      reviews: Math.max(0, parseInt(get("reviews")) || 0),
+      delivery_fee: Math.max(0, parseInt(get("delivery_fee")) || 0),
+      discount_pct: (!discountNum || discountNum <= 0) ? null : Math.min(90, Math.round(discountNum)),
+      active: get("active") === "true",
+      img: imageUrl, gallery: Array.from(card.querySelectorAll('[data-gallery-wrap] input')).map(el => el.value.trim()).filter(Boolean),
+      desc: get("desc").trim(), fabric: get("fabric").trim() || null, options: { sizes: parseSizes(get("sizes")), colors: parseColors(get("colors")) },
+    };
+    const { error } = await sb.from("products").update(payload).eq("id", +b.dataset.save).eq("store_id", STORE_ID);
+    if (error) {
+      setUploadMsg(msg, "Product save fail: " + error.message, "err");
+      showToast("Save fail: " + error.message, "err");
+      b.disabled = false; b.textContent = oldLabel;
+    } else {
+      fileInput.value = "";
+      b.textContent = "✅ Saved!";
+      loadProducts();
+      showToast("✅ Product save ho gaya — store par live hai.", "ok");
+    }
+  });
+  wrap.querySelectorAll("[data-del]").forEach(b => b.onclick = async () => {
+    if (!confirm("Yeh product delete kar dein?")) return;
+    try {
+      const r = await deleteProductAndImages(+b.dataset.del);
+      loadProducts();
+      showToast("✅ Product delete ho gaya." + (r.images ? ` ${r.images} image${r.images > 1 ? "s" : ""} bhi Storage se delete huin — space wapas mil gayi.` : ""), "ok");
+    } catch (e) { showToast("Delete fail: " + e.message, "err"); }
+  });
+}
+$("#addProductBtn").onclick = async () => {
+  const { data, error } = await sb.from("products").insert({
+    store_id: STORE_ID,
+    name: "New Product", cat: "General", price: 999, rating: 4.5, reviews: 0, delivery_fee: 0, discount_pct: null, stock: "in", featured: false, img: "", gallery: [], desc: "", active: false, options: {},
+  }).select("id").single();
+  if (error) showToast("Add fail: " + error.message, "err");
+  else {
+    await loadProducts();
+    if (data && data.id) openProductForm(data.id);
+    showToast("Naya product ban gaya hai (abhi hidden hai) — form mein details aur image bhar kar, 'Show on store' = Yes karke Save karein.", "info");
+  }
+};
+
+/* ---------- Categories ---------- */
+async function loadCategories(){
+  const wrap = $("#categoriesWrap");
+  const { data, error } = await sb.from("categories").select("*").eq("store_id", STORE_ID).order("sort", { ascending: true }).order("id", { ascending: true });
+  if (error){ wrap.innerHTML = `<p class="empty-note">Categories load nahi ho sakein (shopify migration run hai?): ${esc(error.message)}</p>`; CATEGORIES_CACHE = []; return; }
+  CATEGORIES_CACHE = data || [];
+  refreshCatList();
+  if (!CATEGORIES_CACHE.length){ wrap.innerHTML = `<p class="empty-note">Abhi koi category nahi hai — upar wale form se pehli category add karein.</p>`; return; }
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Image</th><th>Name</th><th>Products</th><th>Sort</th><th>Visible</th><th>Image URL / Upload</th><th></th></tr></thead>
+    <tbody>${CATEGORIES_CACHE.map(c => { const count = PRODUCTS_CACHE.filter(p => p.cat === c.name).length; return `<tr data-cid="${c.id}">
+      <td><img class="thumb-sm" data-cprev src="${safeUrl(c.image || PLACEHOLDER_IMG)}" alt=""></td>
+      <td><input type="text" data-cname value="${esc(c.name)}"></td>
+      <td>${count}</td>
+      <td><input type="number" data-csort value="${c.sort ?? 0}" style="max-width:76px"></td>
+      <td><input type="checkbox" data-cvis ${c.visible !== false ? "checked" : ""} style="width:18px;height:18px"></td>
+      <td><input type="text" data-cimg value="${esc(c.image || "")}" placeholder="https://…"><br><input type="file" data-cfile accept="image/*" style="margin-top:5px"></td>
+      <td style="white-space:nowrap"><button class="btn small" data-csave="${c.id}">Save</button> <button class="btn small danger" data-cdel="${c.id}">Delete</button></td>
+    </tr>`; }).join("")}</tbody></table>`;
+  wrap.querySelectorAll("[data-cvis]").forEach(cb => cb.onchange = async () => {
+    const id = +cb.closest("tr").dataset.cid;
+    const { error } = await sb.from("categories").update({ visible: cb.checked }).eq("id", id).eq("store_id", STORE_ID);
+    const msg = $("#catMsg");
+    if (error){ msg.textContent = "Visible update fail: " + error.message; msg.className = "msg err"; cb.checked = !cb.checked; showToast("Visible update fail: " + error.message, "err"); }
+    else { msg.textContent = cb.checked ? "✅ Category ab store par nazar aayegi." : "✅ Category store se hide ho gayi (products phir bhi All Products mein rahenge)."; msg.className = "msg ok"; showToast(cb.checked ? "✅ Category ab store par nazar aayegi." : "✅ Category store se hide ho gayi.", "ok"); loadCategories(); }
+  });
+  wrap.querySelectorAll("[data-csave]").forEach(b => b.onclick = async () => {
+    const tr = b.closest("tr");
+    const id = +b.dataset.csave;
+    const name = tr.querySelector("[data-cname]").value.trim();
+    if (!name){ showToast("Category ka naam khaali nahi ho sakta.", "err"); return; }
+    let image = tr.querySelector("[data-cimg]").value.trim();
+    const file = tr.querySelector("[data-cfile]").files[0];
+    const old = b.textContent; b.disabled = true; b.textContent = "Saving…";
+    try {
+      if (file) image = await uploadImage(file, "categories");
+      const { error } = await sb.from("categories").update({ name, image, sort: parseInt(tr.querySelector("[data-csort]").value) || 0 }).eq("id", id).eq("store_id", STORE_ID);
+      if (error) throw error;
+      $("#catMsg").textContent = "✅ Category save ho gayi."; $("#catMsg").className = "msg ok";
+      showToast("✅ Category save ho gayi.", "ok");
+      loadCategories(); loadProducts();
+    } catch (e) { showToast("Category save fail: " + e.message, "err"); }
+    b.disabled = false; b.textContent = old;
+  });
+  wrap.querySelectorAll("[data-cdel]").forEach(b => b.onclick = async () => {
+    if (!confirm("Yeh category delete kar dein?\n\nNote: is category ke PRODUCTS delete NAHI honge — un par category ka text waisa hi rahega, sirf category nav/tiles/footer se gayab hogi.")) return;
+    const { error } = await sb.from("categories").delete().eq("id", +b.dataset.cdel).eq("store_id", STORE_ID);
+    if (error) showToast("Delete fail: " + error.message, "err");
+    else { $("#catMsg").textContent = "✅ Category delete ho gayi (products mehfooz hain)."; $("#catMsg").className = "msg ok"; showToast("✅ Category delete ho gayi.", "ok"); loadCategories(); }
+  });
+}
+$("#addCategoryBtn").onclick = async () => {
+  const name = $("#catNewName").value.trim();
+  const msg = $("#catMsg");
+  if (!name){ msg.textContent = "Pehle category ka naam likhein."; msg.className = "msg err"; return; }
+  const btn = $("#addCategoryBtn");
+  btn.disabled = true; btn.textContent = "Adding…";
+  try {
+    let image = $("#catNewImage").value.trim();
+    const file = $("#catNewImageFile").files[0];
+    if (file) image = await uploadImage(file, "categories");
+    const maxSort = CATEGORIES_CACHE.reduce((m,c) => Math.max(m, Number(c.sort) || 0), 0);
+    const { error } = await sb.from("categories").insert({ store_id: STORE_ID, name, image, visible: true, sort: maxSort + 1 });
+    if (error) throw error;
+    $("#catNewName").value = ""; $("#catNewImage").value = ""; $("#catNewImageFile").value = "";
+    msg.textContent = `✅ Category "${name}" add ho gayi.`; msg.className = "msg ok";
+    showToast(`✅ Category "${name}" add ho gayi.`, "ok");
+    loadCategories();
+  } catch (e) {
+    msg.textContent = "Category add fail: " + e.message; msg.className = "msg err";
+    showToast("Category add fail: " + e.message, "err");
+  } finally { btn.disabled = false; btn.textContent = "＋ Add Category"; }
+};
+
+/* ---------- Coupons ---------- */
+async function loadCoupons(){
+  const wrap = $("#couponsWrap");
+  const { data, error } = await sb.from("coupons").select("*").eq("store_id", STORE_ID).order("id", { ascending: true });
+  if (error){ wrap.innerHTML = `<p class="empty-note">Coupons load nahi ho sakay (shopify migration run hai?): ${esc(error.message)}</p>`; return; }
+  if (!data.length){ wrap.innerHTML = `<p class="empty-note">Abhi koi coupon nahi hai — upar wale form se pehla coupon banayein.</p>`; return; }
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Code</th><th>Discount</th><th>Active</th><th>Banaya gaya</th><th></th></tr></thead>
+    <tbody>${data.map(c => `<tr>
+      <td><strong>${esc(c.code)}</strong></td>
+      <td>${c.pct}% OFF</td>
+      <td><input type="checkbox" data-cpn-active="${c.id}" ${c.active ? "checked" : ""} style="width:18px;height:18px"></td>
+      <td><small style="color:var(--muted)">${new Date(c.created_at).toLocaleDateString("en-PK",{day:"numeric",month:"short",year:"numeric"})}</small></td>
+      <td><button class="btn small danger" data-cpn-del="${c.id}">Delete</button></td>
+    </tr>`).join("")}</tbody></table>`;
+  wrap.querySelectorAll("[data-cpn-active]").forEach(cb => cb.onchange = async () => {
+    const { error } = await sb.from("coupons").update({ active: cb.checked }).eq("id", +cb.dataset.cpnActive).eq("store_id", STORE_ID);
+    if (error){ showToast("Coupon update fail: " + error.message, "err"); cb.checked = !cb.checked; } else showToast("✅ Coupon " + (cb.checked ? "active ho gaya." : "inactive ho gaya."), "ok");
+  });
+  wrap.querySelectorAll("[data-cpn-del]").forEach(b => b.onclick = async () => {
+    if (!confirm("Yeh coupon delete kar dein?")) return;
+    const { error } = await sb.from("coupons").delete().eq("id", +b.dataset.cpnDel).eq("store_id", STORE_ID);
+    if (error) showToast("Delete fail: " + error.message, "err"); else { loadCoupons(); showToast("✅ Coupon delete ho gaya.", "ok"); }
+  });
+}
+$("#addCouponBtn").onclick = async () => {
+  const code = $("#cpnCode").value.trim().toUpperCase();
+  const pct = Math.min(90, Math.max(1, parseInt($("#cpnPct").value) || 0));
+  const msg = $("#couponsMsg");
+  if (!code){ msg.textContent = "Coupon code likhein."; msg.className = "msg err"; return; }
+  if (!pct){ msg.textContent = "Discount % 1–90 ke darmiyan likhein."; msg.className = "msg err"; return; }
+  const { error } = await sb.from("coupons").insert({ store_id: STORE_ID, code, pct, active: true });
+  if (error){ msg.textContent = "Coupon add fail: " + error.message; msg.className = "msg err"; showToast("Coupon add fail: " + error.message, "err"); return; }
+  $("#cpnCode").value = ""; $("#cpnPct").value = "";
+  msg.textContent = `✅ Coupon ${code} (${pct}% OFF) ban gaya.`; msg.className = "msg ok";
+  showToast(`✅ Coupon ${code} (${pct}% OFF) ban gaya.`, "ok");
+  loadCoupons();
+};
+
+/* ---------- Team (owner only) ---------- */
+async function loadTeam(){
+  const wrap = $("#teamWrap");
+  const { data, error } = await sb.from("team").select("*").eq("store_id", STORE_ID).order("created_at", { ascending: true });
+  if (error){ wrap.innerHTML = `<p class="empty-note">Team load nahi ho saki: ${esc(error.message)}</p>`; return; }
+  wrap.innerHTML = `<table>
+    <thead><tr><th>Email</th><th>Role</th><th></th></tr></thead>
+    <tbody>${(data || []).map(m => { const self = m.email === MY_EMAIL; return `<tr>
+      <td><strong>${esc(m.email)}</strong>${self ? ' <span class="pill green">Aap</span>' : ""}</td>
+      <td><select class="status" data-trole="${esc(m.email)}" ${self ? "disabled" : ""}>${["owner","admin","staff"].map(r => `<option value="${r}" ${r===m.role?"selected":""}>${r[0].toUpperCase()+r.slice(1)}</option>`).join("")}</select></td>
+      <td>${self ? '<small style="color:var(--muted)">Apna owner account remove nahi ho sakta</small>' : `<button class="btn small danger" data-tdel="${esc(m.email)}">Remove</button>`}</td>
+    </tr>`; }).join("")}</tbody></table>`;
+  wrap.querySelectorAll("[data-trole]").forEach(sel => sel.onchange = async () => {
+    const { error } = await sb.from("team").update({ role: sel.value }).eq("store_id", STORE_ID).eq("email", sel.dataset.trole);
+    if (error){ showToast("Role update fail: " + error.message, "err"); loadTeam(); }
+    else { $("#teamMsg").textContent = "✅ Role update ho gaya."; $("#teamMsg").className = "msg ok"; showToast("✅ Role update ho gaya.", "ok"); }
+  });
+  wrap.querySelectorAll("[data-tdel]").forEach(b => b.onclick = async () => {
+    if (!confirm(`${b.dataset.tdel} ko team se remove kar dein? Unka dashboard access foran band ho jayega.`)) return;
+    const { error } = await sb.from("team").delete().eq("store_id", STORE_ID).eq("email", b.dataset.tdel);
+    if (error) showToast("Remove fail: " + error.message, "err"); else { loadTeam(); showToast("✅ Member team se remove ho gaya.", "ok"); }
+  });
+}
+$("#addTeamBtn").onclick = async () => {
+  const email = $("#teamEmail").value.trim().toLowerCase();
+  const role = $("#teamRole").value;
+  const msg = $("#teamMsg");
+  if (!email || !email.includes("@")){ msg.textContent = "Sahi email likhein."; msg.className = "msg err"; return; }
+  const { error } = await sb.from("team").insert({ store_id: STORE_ID, email, role });
+  if (error){ msg.textContent = "Member add fail: " + error.message; msg.className = "msg err"; showToast("Member add fail: " + error.message, "err"); return; }
+  $("#teamEmail").value = "";
+  msg.textContent = `✅ ${email} team mein add ho gaya (${role}). Woh magic link se login kar sakte hain — agar link na aaye to pehle Supabase Auth mein unka user banana hoga.`; msg.className = "msg ok";
+  showToast(`✅ ${email} team mein add ho gaya (${role}).`, "ok");
+  loadTeam();
+};
+
+/* ---------- Dashboard / Analytics ---------- */
+function dayKeyOf(d){ return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+function startOfDay(offset = 0){ const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + offset); return d; }
+function lastNDayKeys(n){ const arr = []; for (let i = n - 1; i >= 0; i--) arr.push(dayKeyOf(startOfDay(-i))); return arr; }
+function setCard(id, value, label){
+  const el = document.getElementById(id); if (!el) return;
+  el.textContent = value;
+  if (label !== undefined){ const span = el.parentElement.querySelector("span"); if (span) span.textContent = label; }
+}
+function sourceOf(v){
+  if (v.utm_source) return v.utm_source;
+  const h = String(v.referrer_host || "direct").toLowerCase();
+  if (!h || h === "direct") return "Direct";
+  if (h.includes("google")) return "Google";
+  if (h.includes("facebook") || h.includes("fb.")) return "Facebook";
+  if (h.includes("instagram")) return "Instagram";
+  if (h.includes("whatsapp") || h.includes("wa.me")) return "WhatsApp";
+  if (h.includes("youtube") || h.includes("youtu.be")) return "YouTube";
+  return h;
+}
+function barChart(el, values, labels, opts = {}){
+  if (!el) return;
+  const max = Math.max(...values, 0);
+  if (max <= 0){ el.innerHTML = `<p class="empty-note">${opts.empty || "Abhi tak koi data record nahi."}</p>`; return; }
+  el.innerHTML = `<div class="bars">${values.map((v, i) => `<div class="bar-col"><span class="bar-val">${opts.format ? opts.format(v) : v}</span><div class="bar ${opts.sales ? "sales" : ""}" style="height:${Math.max(3, Math.round(v / max * 100))}%"></div><span class="bar-lab">${escapeHtml(labels[i])}</span></div>`).join("")}</div>`;
+}
+async function loadDashboard(){
+  /* Visits: sirf pichle 30 din fetch hote hain (performance). */
+  let visits = [];
+  const msg = $("#dashMsg");
+  try {
+    const since = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+    const { data, error } = await sb.from("visits").select("*").eq("store_id", STORE_ID).gte("created_at", since).order("created_at", { ascending: false }).limit(5000);
+    if (error) throw error;
+    visits = data || [];
+    msg.textContent = ""; msg.className = "msg";
+  } catch (e) {
+    msg.textContent = "Visits load nahi ho sakay (analytics migration run hai to thori dair mein data aana shuru hoga): " + e.message;
+    msg.className = "msg err";
+  }
+  const orders = ORDERS_CACHE.filter(o => o.status !== "Cancelled");
+  const countByDay = rows => { const m = {}; rows.forEach(r => { const k = dayKeyOf(new Date(r.created_at)); m[k] = (m[k] || 0) + 1; }); return m; };
+  const sumByDay = rows => { const m = {}; rows.forEach(r => { const k = dayKeyOf(new Date(r.created_at)); m[k] = (m[k] || 0) + Number(r.total || 0); }); return m; };
+  const vBy = countByDay(visits), oCntBy = countByDay(orders), oSumBy = sumByDay(orders);
+  const todayK = dayKeyOf(new Date()), yestK = dayKeyOf(startOfDay(-1));
+  const keys7 = lastNDayKeys(7), keys30 = lastNDayKeys(30);
+  const sumKeys = (m, keys) => keys.reduce((s, k) => s + (m[k] || 0), 0);
+
+  const vToday = vBy[todayK] || 0, vYest = vBy[yestK] || 0, v7 = sumKeys(vBy, keys7);
+  const visits7rows = visits.filter(v => keys7.includes(dayKeyOf(new Date(v.created_at))));
+  const unique7 = new Set(visits7rows.map(v => v.session_id).filter(Boolean)).size;
+  setCard("avToday", vToday); setCard("avYesterday", vYest); setCard("av7", v7); setCard("avUnique7", unique7);
+
+  const oToday = oSumBy[todayK] || 0, oYest = oSumBy[yestK] || 0;
+  const o7 = sumKeys(oSumBy, keys7), o30 = sumKeys(oSumBy, keys30);
+  const oAll = orders.reduce((s, o) => s + Number(o.total || 0), 0);
+  const ocToday = oCntBy[todayK] || 0, ocYest = oCntBy[yestK] || 0, oc7 = sumKeys(oCntBy, keys7);
+  setCard("asToday", fmt(oToday), `Aaj ki sales • ${ocToday} orders`);
+  setCard("asYesterday", fmt(oYest), `Kal ki sales • ${ocYest} orders`);
+  setCard("as7", fmt(o7)); setCard("as30", fmt(o30)); setCard("asAll", fmt(oAll));
+  setCard("asAov", orders.length ? fmt(Math.round(oAll / orders.length)) : "Rs.0");
+  setCard("asOrders7", oc7);
+  setCard("asConv", v7 > 0 ? (Math.round(oc7 / v7 * 1000) / 10) + "%" : "—");
+
+  const dayLabels = keys7.map(k => new Date(k + "T00:00:00").toLocaleDateString("en-PK", { weekday: "short" }));
+  barChart($("#chartVisitors"), keys7.map(k => vBy[k] || 0), dayLabels, { empty: "Abhi tak koi visit record nahi — store par pehli visit ke baad chart banna shuru hoga." });
+  const shortRs = v => v >= 1000 ? "Rs." + (Math.round(v / 100) / 10) + "k" : fmt(v);
+  barChart($("#chartSales"), keys7.map(k => oSumBy[k] || 0), dayLabels, { sales: true, format: shortRs, empty: "Abhi tak koi order record nahi." });
+
+  /* Traffic sources (loaded visits = pichle 30 din) */
+  const tWrap = $("#trafficWrap");
+  if (!visits.length){
+    tWrap.innerHTML = `<p class="empty-note">Abhi tak koi visit record nahi. Jaise hi customers store kholenge, sources yahan nazar aayenge.</p>`;
+  } else {
+    const counts = {};
+    visits.forEach(v => { const s = sourceOf(v); counts[s] = (counts[s] || 0) + 1; });
+    const top = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 6);
+    tWrap.innerHTML = top.map(([name, n]) => { const pct = Math.round(n / visits.length * 100); return `<div class="tsrc-row"><span>${esc(name)}</span><div class="tsrc-track"><div class="tsrc-fill" style="width:${pct}%"></div></div><span class="tsrc-num">${n} • ${pct}%</span></div>`; }).join("")
+      + `<p class="hint" style="margin-top:8px">Total ${visits.length} visits (pichle 30 din ke loaded data par).</p>`;
+  }
+
+  /* Top products (saare non-cancelled orders se) */
+  const agg = {};
+  orders.forEach(o => orderLines(o).forEach(i => {
+    const name = i.name || "Product";
+    if (!agg[name]) agg[name] = { qty: 0, rev: 0 };
+    agg[name].qty += Number(i.qty) || 0;
+    agg[name].rev += (Number(i.price) || 0) * (Number(i.qty) || 0);
+  }));
+  const topList = Object.entries(agg).sort((a, b) => b[1].qty - a[1].qty).slice(0, 5);
+  $("#topProductsWrap").innerHTML = topList.length
+    ? `<table><tbody>${topList.map(([name, a], i) => `<tr><td>${i + 1}. <strong>${esc(name)}</strong></td><td>${a.qty} sold</td><td><strong>${fmt(a.rev)}</strong></td></tr>`).join("")}</tbody></table>`
+    : `<p class="empty-note">Abhi tak koi order record nahi.</p>`;
+
+  /* Recent orders */
+  const recent = ORDERS_CACHE.slice(0, 5);
+  $("#recentOrdersWrap").innerHTML = recent.length
+    ? `<table><tbody>${recent.map(o => `<tr><td><strong>#${o.id}</strong></td><td>${esc(o.customer_name)}</td><td>${fmt(o.total)}</td><td><span class="pill">${esc(o.status)}</span></td><td><small style="color:var(--muted)">${new Date(o.created_at).toLocaleString("en-PK",{day:"numeric",month:"short",hour:"numeric",minute:"2-digit"})}</small></td></tr>`).join("")}</tbody></table>`
+    : `<p class="empty-note">Abhi tak koi order record nahi.</p>`;
+}
+
+/* ---------- Store Settings ---------- */
+function normalizeHeroSlides(rawHero){
+  const blank = { pill: "", title: "", subtitle: "", button: "", image: "", visible: true };
+  if (!Array.isArray(rawHero) || !rawHero.length) return JSON.parse(JSON.stringify(ADMIN_DEFAULT_SETTINGS.hero));
+  return rawHero.slice(0, 4).map(s => {
+    const d = { ...blank };
+    if (s && typeof s === "object") ["pill", "title", "subtitle", "button", "image"].forEach(k => { if (typeof s[k] === "string") d[k] = s[k]; });
+    if (s && typeof s === "object") d.visible = s.visible !== false;
+    return d;
+  });
+}
+/* V3.9: section titles editor — keys storefront SECTION_TEXT_KEY se match karte hain. */ const SECTION_TEXT_KEYS_ADMIN = ["categories", "best", "hot", "arrivals", "deals", "budget", "howto", "faq", "reviews", "festive", "unstitched_tabs", "readytowear_tabs", "all_products"]; /* ---------- V4 Phase 2: theme registry helpers (admin, def-driven) ----------
+   Behaviour contract: koi def na mile to V3 path — sab boxes dikhte hain,
+   builder poori list dikhata hai, Style table 13 rows. Def mile to sirf
+   uske controls dikhte hain; HIDE sirf CSS display:none se hota hai —
+   boxes DOM mein rehte hain, is liye persistAllSettings ka overlay
+   (readCntList / checkboxes) chhupi hui values ko bhi sahi parhta hai.
+   Save path mein koi guard nahi: guard lagana ghalat hota — theme switch
+   ke baad save hone wala unsaved edit mit jata. */
+function v4AdminThemeKey(){
+var t = (typeof SETTINGS_STATE !== "undefined" && SETTINGS_STATE && SETTINGS_STATE.theme) ? String(SETTINGS_STATE.theme).toLowerCase() : "";
+return t;
+}
+function v4AdminDefSectionsFor(themeKey){
+var def = null;
+try { def = (themeKey && window.SHOPNEST_THEME_DEF) ? (window.SHOPNEST_THEME_DEF(String(themeKey).toLowerCase()) || null) : null; } catch (e){ def = null; }
+if (def && Array.isArray(def.sections)) return def.sections.map(function(s){ return s && s.key; }).filter(Boolean);
+return null;
+}
+/* Renderable sections per theme (builder greying — ek jagah, def-driven):
+   - def.sections ho (Luxury) to wahi keys renderable hain.
+   - warna SECTION_DEFS ki keys mein se theme-gated keys hata dein:
+     Luxury-only = luxury def ki onlySections (fallback literal),
+     Playful-only = playful def ki onlySections (fallback literal),
+     reels sirf playful/luxury par render hota hai (storefront ki wahi shart).
+   Ye sirf BUILDER ke grey/disabled ke liye hai — storefront ke gates
+   (applySections) alag se chalte hain aur wahi faisla karte hain. */
+function v4AdminOnlySectionsFor(themeKey, fallback){
+var d = null;
+ try { d = (themeKey && window.SHOPNEST_THEME_DEF) ? (window.SHOPNEST_THEME_DEF(String(themeKey).toLowerCase()) || null) : null; } catch(e){ d = null; }
+ if (d && Array.isArray(d.onlySections) && d.onlySections.length) return d.onlySections.slice();
+ return fallback.slice();
+}
+function v4AdminRenderableSectionsFor(themeKey){
+var key = String(themeKey || "").toLowerCase();
+var defKeys = v4AdminDefSectionsFor(key);
+if (defKeys) return defKeys;
+var all = SECTION_DEFS.map(function(d){ return d.key; });
+var luxOnly = v4AdminOnlySectionsFor("luxury", ["festive", "unstitched_tabs", "readytowear_tabs", "editorial"]);
+var playOnly = v4AdminOnlySectionsFor("playful", ["featured", "blog"]);
+return all.filter(function(k){
+if (key !== "luxury" && luxOnly.indexOf(k) !== -1) return false;
+if (key !== "playful" && playOnly.indexOf(k) !== -1) return false;
+if (k === "reels" && key !== "playful" && key !== "luxury") return false;
+return true;
+});
+}
+
+function v4AdminThemeDef(){
+var k = v4AdminThemeKey();
+try { return (k && window.SHOPNEST_THEME_DEF) ? (window.SHOPNEST_THEME_DEF(k) || null) : null; } catch (e){ return null; }
+}
+function v4AdminDefSections(){
+return v4AdminDefSectionsFor(v4AdminThemeKey());
+}
+/* Content box map: wrapId -> schema key ("generic" = hamesha dikhe). */
+var V4_CONTENT_BOXES = [
+{ wrap: "cntHowWrap", key: "generic" },
+{ wrap: "cntFaqWrap", key: "generic" },
+{ wrap: "cntReviewsWrap", key: "generic" },
+{ wrap: "cntBudgetWrap", key: "generic" },
+{ wrap: "cntTrustWrap", key: "generic" },
+{ wrap: "cntLuxTilesWrap", key: "luxuryTiles" },
+{ wrap: "cntLuxTabsWrap", key: "luxuryTabs" },
+{ wrap: "cntLuxRtwTabsWrap", key: "luxuryRtwTabs" },
+{ wrap: "cntLuxBannersWrap", key: "luxuryBanners" },
+{ wrap: "cntCollPagesWrap", key: "collectionPages" },
+{ wrap: "cntCustomPagesWrap", key: "generic" },
+{ wrap: "cntReelsWrap", key: "instaReels" },
+{ wrap: "cntBlogWrap", key: "blogPosts" }
+];
+function v4BoxVisibleForTheme(boxKey, def){
+if (!def || !def.settingsSchema) return true; /* V3 path — koi def nahi, ya stub def (settingsSchema nahi): aaj jaisa, sab dikhe */
+if (boxKey === "generic") return true;
+return !!def.settingsSchema[boxKey];
+}
+/* Style table key filter: def ho to sirf uske sections; na ho to 13 keys. */
+function v4StyleKeyVisible(k){
+var secs = v4AdminDefSections();
+if (!secs) return true;
+return secs.indexOf(k) !== -1;
+}
+function v4AdminCleanStr(v){ return String(v || ""); }
+function v4AdminSanitizeList(rawList, fields, max, keep){
+if (!Array.isArray(rawList)) return null;
+var out = rawList.filter(function(x){ return x && typeof x === "object"; }).map(function(x){
+var o = {};
+fields.forEach(function(f){ o[f] = v4AdminCleanStr(x[f]); });
+return o;
+}).filter(function(o){
+if (keep === "all") return true;
+if (keep === "img") return !!o.img;
+if (keep === "cat") return !!o.cat;
+return fields.some(function(f){ return !!o[f]; });
+});
+return (typeof max === "number") ? out.slice(0, max) : out;
+}
+function v4AdminSanitizeObject(rawObj, fields){
+if (!rawObj || typeof rawObj !== "object") return null;
+var o = {};
+fields.forEach(function(f){ if (typeof rawObj[f] === "string") o[f] = rawObj[f]; });
+return o;
+}
+/* V4 admin schema loop — def ki keys whitelist mein. ADDITIVE: V3 lines
+   upar rehti hain aur same values likhti hain; loop unhein dobara same tarah
+   likhta hai. luxuryBanners ki V3 line V5 Phase 2b mein DELETE ho chuki —
+   loop ab us ka WAHID writer hai (def shape {img,eyebrow,title,button,cat};
+   alt kabhi display nahi hota tha).
+   'deferred' keys skip (showDisclaimer — admin V3 line usay likhti hai).
+   Maps: sectionText fixed 12 keys (SECTION_TEXT_KEYS_ADMIN), pdpText fixed
+   3 keys — def ka kind "open" storefront semantics hai; admin ke paas
+   sirf in keys ke inputs hain, is liye loop bhi inhi ko likhta hai. */
+function applyAdminThemeSchema(out, raw){
+var defs = window.SHOPNEST_THEME_DEFS || {};
+Object.keys(defs).forEach(function(dk){
+var def = defs[dk];
+var schema = def && def.settingsSchema;
+if (!schema) return;
+Object.keys(schema).forEach(function(key){
+var spec = schema[key];
+if (!spec || spec.deferred) return;
+if (spec.type === "list"){
+var list = v4AdminSanitizeList(raw[key], spec.fields, spec.max, spec.keep);
+if (list !== null) out[key] = list;
+} else if (spec.type === "string"){
+if (typeof raw[key] === "string") out[key] = raw[key].trim();
+} else if (spec.type === "boolean"){
+if (typeof raw[key] === "boolean") out[key] = raw[key];
+} else if (spec.type === "object"){
+var obj = v4AdminSanitizeObject(raw[key], spec.fields);
+if (obj !== null && out[key] && typeof out[key] === "object"){
+Object.keys(obj).forEach(function(f){ out[key][f] = obj[f]; });
+}
+} else if (spec.type === "map"){
+if (raw[key] && typeof raw[key] === "object"){
+if (key === "sectionText"){
+if (!out[key] || typeof out[key] !== "object") out[key] = {};
+SECTION_TEXT_KEYS_ADMIN.forEach(function(k){
+var v = raw[key][k];
+if (v && typeof v === "object") out[key][k] = { eyebrow: String(v.eyebrow || ""), title: String(v.title || "") };
+});
+} else if (key === "pdpText"){
+if (!out[key] || typeof out[key] !== "object") out[key] = {};
+(spec.keys || []).forEach(function(k){ if (typeof raw[key][k] === "string") out[key][k] = raw[key][k]; });
+} else if (spec.kind === "open"){
+if (!out[key] || typeof out[key] !== "object") out[key] = {};
+Object.keys(raw[key]).forEach(function(k){ var v = raw[key][k]; if (v && typeof v === "object") out[key][k] = { eyebrow: String(v.eyebrow || ""), title: String(v.title || "") }; });
+}
+}
+}
+});
+});
+}
+/* Theme visibility apply karein: Content boxes hide/show (display:none,
+   DOM mein rehte hain); theme badla ho to builder re-seed + Style table
+   re-render (reload jaisa, save ke baad). */
+var V4_APPLIED_THEME = null;
+function applyThemeVisibility(){
+var themeKey = v4AdminThemeKey();
+var def = v4AdminThemeDef();
+V4_CONTENT_BOXES.forEach(function(b){
+var wrap = document.getElementById(b.wrap);
+if (!wrap) return;
+var box = wrap.parentElement;
+if (!box || !box.classList || !box.classList.contains("settings-box")) return; /* fail safe: dikhta rahe */
+box.style.display = v4BoxVisibleForTheme(b.key, def) ? "" : "none";
+});
+if (themeKey !== V4_APPLIED_THEME){
+V4_APPLIED_THEME = themeKey;
+if (typeof homepageFilled !== "undefined" && homepageFilled && typeof seedHomepage === "function") seedHomepage(SETTINGS_STATE);
+if (typeof styleFilled !== "undefined" && styleFilled && typeof renderStyleSections === "function") renderStyleSections((SETTINGS_STATE && SETTINGS_STATE.style && SETTINGS_STATE.style.sections) || {});
+if (typeof sectionsFilled !== "undefined" && sectionsFilled && typeof renderSectionsTab === "function") renderSectionsTab((SETTINGS_STATE && SETTINGS_STATE.sectionStyles) || {}, (SETTINGS_STATE && SETTINGS_STATE.sectionText) || {});
+}
+}
+function mergeAdminSettings(raw){
+  const out = JSON.parse(JSON.stringify(ADMIN_DEFAULT_SETTINGS));
+  if (!raw || typeof raw !== "object") return out;
+  if (typeof raw.store_name === "string" && raw.store_name.trim()) out.store_name = raw.store_name.trim();
+  if (Array.isArray(raw.announcements)) out.announcements = out.announcements.map((d,i) => typeof raw.announcements[i] === "string" && raw.announcements[i].trim() ? raw.announcements[i] : d);
+  if (Array.isArray(raw.hero) && raw.hero.length) out.hero = normalizeHeroSlides(raw.hero);
+  if (Array.isArray(raw.promo)) out.promo = out.promo.map((d,i) => ({ ...d, ...(raw.promo[i] && typeof raw.promo[i] === "object" ? raw.promo[i] : {}) }));
+  if (typeof raw.about_heading === "string" && raw.about_heading.trim()) out.about_heading = raw.about_heading.trim();
+  if (typeof raw.about_text === "string" && raw.about_text.trim()) out.about_text = raw.about_text.trim();
+  /* V3.3 Content — key maujood ho to wahi (khaali array = sab delete); na ho to defaults. */
+  const cs = v => String(v || "");
+  if (Array.isArray(raw.howSteps)) out.howSteps = raw.howSteps.filter(x => x && typeof x === "object").map(x => ({ title: cs(x.title), text: cs(x.text) }));
+  if (Array.isArray(raw.faqs)) out.faqs = raw.faqs.filter(x => x && typeof x === "object").map(x => ({ q: cs(x.q), a: cs(x.a) }));
+  if (Array.isArray(raw.reviews)) out.reviews = raw.reviews.filter(x => x && typeof x === "object").map(x => {
+    const r = parseFloat(x.rating);
+    return { product: cs(x.product), name: cs(x.name), city: cs(x.city), rating: Number.isFinite(r) ? Math.min(5, Math.max(1, r)) : 5, text: cs(x.text) };
+  });
+  if (Array.isArray(raw.budgetTiles)) out.budgetTiles = raw.budgetTiles.filter(x => x && typeof x === "object").map(x => ({ label: cs(x.label), amount: cs(x.amount), note: cs(x.note), budget: cs(x.budget) }));
+  if (Array.isArray(raw.trustItems)) out.trustItems = raw.trustItems.filter(x => x && typeof x === "object").map(x => ({ title: cs(x.title), sub: cs(x.sub) })); /* V3.6: Instagram reels + blog */ if (typeof raw.instaHandle === "string") out.instaHandle = raw.instaHandle.trim(); if (Array.isArray(raw.instaReels)) out.instaReels = raw.instaReels.filter(x => x && typeof x === "object").map(x => ({ user: cs(x.user), avatar: cs(x.avatar), video: cs(x.video), poster: cs(x.poster), title: cs(x.title) })); if (Array.isArray(raw.blogPosts)) out.blogPosts = raw.blogPosts.filter(x => x && typeof x === "object").map(x => ({ title: cs(x.title), excerpt: cs(x.excerpt), img: cs(x.img), link: cs(x.link) })); if (typeof raw.showReels === "boolean") out.showReels = raw.showReels; if (typeof raw.showBlog === "boolean") out.showBlog = raw.showBlog; /* V3.9: fashion toggles + section/PDP text. */ if (typeof raw.showSizes === "boolean") out.showSizes = raw.showSizes; if (typeof raw.showColors === "boolean") out.showColors = raw.showColors; if (typeof raw.showDisclaimer === "boolean") out.showDisclaimer = raw.showDisclaimer; if (raw.sectionText && typeof raw.sectionText === "object"){ SECTION_TEXT_KEYS_ADMIN.forEach(k => { const v = raw.sectionText[k]; if (v && typeof v === "object") out.sectionText[k] = { eyebrow: String(v.eyebrow || ""), title: String(v.title || "") }; }); } if (raw.pdpText && typeof raw.pdpText === "object"){ ["details", "related", "delivery"].forEach(k => { if (typeof raw.pdpText[k] === "string") out.pdpText[k] = raw.pdpText[k]; }); } const luxCs = v => String(v || ""); if (Array.isArray(raw.luxuryTiles)) out.luxuryTiles = raw.luxuryTiles.filter(x => x && typeof x === "object").map(x => ({ label: luxCs(x.label), cat: luxCs(x.cat), img: luxCs(x.img) })).filter(x => x.label || x.cat || x.img).slice(0, 4); if (Array.isArray(raw.luxuryTabs)) out.luxuryTabs = raw.luxuryTabs.filter(x => x && typeof x === "object").map(x => ({ label: luxCs(x.label), cat: luxCs(x.cat) })).filter(x => x.label || x.cat).slice(0, 4); if (raw.luxuryBanner && typeof raw.luxuryBanner === "object"){ ["img", "eyebrow", "title", "button", "cat"].forEach(k => { if (typeof raw.luxuryBanner[k] === "string") out.luxuryBanner[k] = raw.luxuryBanner[k]; }); } if (Array.isArray(raw.luxuryRtwTabs)) out.luxuryRtwTabs = raw.luxuryRtwTabs.filter(x => x && typeof x === "object").map(x => ({ label: luxCs(x.label), cat: luxCs(x.cat) })).filter(x => x.label || x.cat).slice(0, 4); if (Array.isArray(raw.collectionPages)) out.collectionPages = raw.collectionPages.filter(x => x && typeof x === "object").map(x => ({ cat: luxCs(x.cat), title: luxCs(x.title), subtitle: luxCs(x.subtitle), img: luxCs(x.img) })).filter(x => x.cat).slice(0, 12); if (Array.isArray(raw.customPages)) out.customPages = raw.customPages.filter(x => x && typeof x === "object").map(x => ({ slug: String(x.slug || "").trim().toLowerCase(), title: luxCs(x.title), body: String(x.body || "").slice(0, 20000), seoTitle: luxCs(x.seoTitle), showInHeader: x.showInHeader === true, showInFooter: x.showInFooter === true })).filter(x => x.slug).slice(0, 20); /* V5 Phase 5: Meta + custom code — whitelist rebuild; capiToken yahan KABHI nahi (wo store_meta_secrets mein hai, Part B). */ if (raw.meta && typeof raw.meta === "object"){ out.meta = { pixelId: String(raw.meta.pixelId || "").replace(/[^0-9]/g, "").slice(0, 20), capiEnabled: raw.meta.capiEnabled === true, testEventCode: String(raw.meta.testEventCode || "").slice(0, 64), hasCapiToken: raw.meta.hasCapiToken === true, capiTokenLast4: String(raw.meta.capiTokenLast4 || "").slice(-4) }; } if (raw.customCode && typeof raw.customCode === "object"){ out.customCode = { head: String(raw.customCode.head || "").slice(0, 50000), body: String(raw.customCode.body || "").slice(0, 50000) }; }
+  if (typeof raw.whatsapp_number === "string") out.whatsapp_number = raw.whatsapp_number.trim();
+  /* V3 Part B: SEO fields */
+  if (typeof raw.seo_title === "string") out.seo_title = raw.seo_title;
+  if (typeof raw.seo_description === "string") out.seo_description = raw.seo_description;
+  if (raw.sections && typeof raw.sections === "object") Object.keys(out.sections).forEach(k => { if (typeof raw.sections[k] === "boolean") out.sections[k] = raw.sections[k]; });
+  if (raw.policies && typeof raw.policies === "object") Object.keys(out.policies).forEach(k => { if (typeof raw.policies[k] === "string") out.policies[k] = raw.policies[k]; });
+  if (raw.profile && typeof raw.profile === "object") Object.keys(out.profile).forEach(k => { if (typeof raw.profile[k] === "string") out.profile[k] = raw.profile[k]; });
+  /* --- V2 keys (Appearance / Homepage / Custom Fields) --- */
+  if (raw.font_family && typeof raw.font_family === "object")
+    out.font_family = { name: String(raw.font_family.name || ""), stack: String(raw.font_family.stack || ""), google: String(raw.font_family.google || "") };
+  else if (typeof raw.font_family === "string" && FONTS[raw.font_family])
+    out.font_family = { ...FONTS[raw.font_family] };
+  if (typeof raw.theme_color === "string") out.theme_color = raw.theme_color;
+  if (typeof raw.theme === "string") out.theme = raw.theme.trim().toLowerCase();
+  /* V3.2 Style Editor — sirf validated values merge hoti hain; ghalat
+     rang/radius khaali (theme default) ban jata hai, kabhi raw save nahi hota. */
+  if (raw.style && typeof raw.style === "object"){
+    const st = raw.style;
+    out.style = JSON.parse(JSON.stringify(ADMIN_DEFAULT_SETTINGS.style));
+    if (st.card && typeof st.card === "object"){
+      out.style.card.radius = clampRadiusAdmin(st.card.radius);
+      out.style.card.bg = adminStyleColor(st.card.bg);
+      out.style.card.border = adminStyleColor(st.card.border);
+      out.style.card.shadow = ["", "none", "soft", "strong"].indexOf(String(st.card.shadow || "")) !== -1 ? String(st.card.shadow) : "";
+      out.style.card.titleColor = adminStyleColor(st.card.titleColor);
+      out.style.card.priceColor = adminStyleColor(st.card.priceColor);
+    }
+    if (st.sections && typeof st.sections === "object"){
+      STYLE_SECTION_KEYS_ADMIN.forEach(k => {
+        if (st.sections[k] && typeof st.sections[k] === "object")
+          out.style.sections[k] = { bg: adminStyleColor(st.sections[k].bg), heading: adminStyleColor(st.sections[k].heading) };
+      });
+    }
+    if (st.buttons && typeof st.buttons === "object"){
+      out.style.buttons.primaryBg = adminStyleColor(st.buttons.primaryBg);
+      out.style.buttons.primaryColor = adminStyleColor(st.buttons.primaryColor);
+      out.style.buttons.radius = clampRadiusAdmin(st.buttons.radius);
+      out.style.buttons.secondaryColor = adminStyleColor(st.buttons.secondaryColor);
+      out.style.buttons.fontSize = ["", "S", "M", "L"].indexOf(String(st.buttons.fontSize || "")) !== -1 ? String(st.buttons.fontSize) : "";
+    }
+    if (st.page && typeof st.page === "object"){
+      ["headerBg", "footerBg", "marqueeBg", "pageBg", "textColor"].forEach(k => { out.style.page[k] = adminStyleColor(st.page[k]); });
+    }
+    if (st.socialProof && typeof st.socialProof === "object"){
+      const sp = st.socialProof;
+      if (typeof sp.enabled === "boolean") out.style.socialProof.enabled = sp.enabled;
+      /* V3.3: demo flag ab parha hi nahi jata — popups sirf manual entries se. */
+      if (Array.isArray(sp.entries)) out.style.socialProof.entries = sp.entries.filter(e => e && typeof e === "object").map(e => ({ name: String(e.name || ""), product: String(e.product || ""), city: String(e.city || ""), amount: String(e.amount || ""), timeText: String(e.timeText || "") })).filter(e => e.name || e.product);
+      const iv = parseInt(sp.intervalSec, 10);
+      if (Number.isFinite(iv)) out.style.socialProof.intervalSec = Math.max(5, iv);
+      const du = parseInt(sp.durationSec, 10);
+      if (Number.isFinite(du)) out.style.socialProof.durationSec = Math.max(1, du);
+    }
+  }
+  if (typeof raw.logo_url === "string") out.logo_url = raw.logo_url;
+  if (raw.socials && typeof raw.socials === "object") Object.keys(out.socials).forEach(k => { if (typeof raw.socials[k] === "string") out.socials[k] = raw.socials[k]; });
+  const cleanLinks = arr => Array.isArray(arr) ? arr.filter(l => l && typeof l === "object").map(l => ({ label: String(l.label || ""), url: String(l.url || "") })) : [];
+  out.menu_links = cleanLinks(raw.menu_links);
+  out.footer_links = cleanLinks(raw.footer_links);
+  if (typeof raw.footer_text === "string") out.footer_text = raw.footer_text;
+  if (Array.isArray(raw.sections_order))
+    out.sections_order = raw.sections_order.filter(e => e && typeof e.key === "string").map(e => ({ key: e.key, visible: e.visible !== false }));
+  if (Array.isArray(raw.custom_sections))
+    out.custom_sections = raw.custom_sections.filter(c => c && c.id).map(c => ({ id: String(c.id), heading: String(c.heading || ""), text: String(c.text || ""), img: String(c.img || ""), btn_label: String(c.btn_label || ""), btn_link: String(c.btn_link || "") }));
+  const cleanFields = arr => Array.isArray(arr) ? arr.filter(f => f && typeof f === "object" && String(f.label || "").trim()).map(f => ({
+    id: String(f.id || ("f" + Math.random().toString(36).slice(2, 9))),
+    label: String(f.label || ""),
+    type: ["text", "number", "select", "textarea"].includes(f.type) ? f.type : "text",
+    options: Array.isArray(f.options) ? f.options.map(x => String(x)).filter(Boolean) : String(f.options || "").split(",").map(x => x.trim()).filter(Boolean),
+    required: !!f.required
+  })) : [];
+  out.checkout_fields = cleanFields(raw.checkout_fields);
+  out.product_fields = cleanFields(raw.product_fields);
+/* V5 Phase 2b: theme schema loop (additive — V3 lines upar rehti hain; luxuryBanners ka wahid writer loop hai, V3 line delete ho chuki). */
+mergeAdminSectionStyles(out, raw); applyAdminThemeSchema(out, raw);
+  return out;
+}
+function renderHeroEditor(){
+  const wrap = $("#heroSlidesWrap");
+  wrap.innerHTML = heroState.map((h, i) => `
+    <div class="settings-box hero-box" data-hidx="${i}" style="margin-top:12px">
+      <div class="hero-head"><h4>Slide ${i + 1}</h4>
+        <span style="display:flex;gap:12px;align-items:center">
+          <label class="checkline" style="border:0;padding:2px"><input type="checkbox" data-hvis ${h.visible !== false ? "checked" : ""}> Show on store</label>
+          <button class="btn small danger" type="button" data-hdel ${heroState.length <= 1 ? "disabled" : ""}>Delete slide</button>
+        </span>
+      </div>
+      <div class="settings-grid">
+        <div>
+          <label>Pill label</label><input data-hf="pill" value="${esc(h.pill || "")}">
+          <label>Big title</label><input data-hf="title" value="${esc(h.title || "")}">
+          <label>Button text</label><input data-hf="button" value="${esc(h.button || "")}">
+        </div>
+        <div>
+          <label>Subtitle</label><textarea data-hf="subtitle" rows="2">${esc(h.subtitle || "")}</textarea>
+          <label>Image URL</label><input data-hf="image" value="${esc(h.image || "")}">
+          <label>Ya apni hero image upload karein</label>
+          <div class="upload-row"><input type="file" data-hfile accept="image/*"></div>
+          <p class="upload-msg" data-hmsg></p>
+        </div>
+      </div>
+    </div>`).join("");
+  wrap.querySelectorAll("[data-hdel]").forEach(b => b.onclick = () => {
+    syncHeroFromDom();
+    const idx = +b.closest(".hero-box").dataset.hidx;
+    heroState.splice(idx, 1);
+    renderHeroEditor();
+  });
+}
+function syncHeroFromDom(){
+  const boxes = [...document.querySelectorAll(".hero-box")];
+  if (!boxes.length) return;
+  heroState = boxes.map(box => {
+    const get = f => box.querySelector(`[data-hf="${f}"]`).value;
+    return { pill: get("pill"), title: get("title"), subtitle: get("subtitle"), button: get("button"), image: get("image"), visible: box.querySelector("[data-hvis]").checked };
+  });
+}
+async function collectHeroSlides(){
+  /* Save se pehle DOM se slides parho; file lagi ho to pehle upload karo —
+     upload fail ho to poora save ruk jata hai (purani behavior ki tarah). */
+  const boxes = [...document.querySelectorAll(".hero-box")];
+  const slides = [];
+  for (const box of boxes){
+    const get = f => box.querySelector(`[data-hf="${f}"]`).value.trim();
+    let image = get("image");
+    const file = box.querySelector("[data-hfile]").files[0];
+    if (file){
+      const msg = box.querySelector("[data-hmsg]");
+      setUploadMsg(msg, "Hero image upload ho rahi hai…");
+      image = await uploadImage(file, `hero/slide-${slides.length + 1}`);
+      box.querySelector('[data-hf="image"]').value = image;
+      box.querySelector("[data-hfile]").value = "";
+      setUploadMsg(msg, "✅ Hero image upload complete.", "ok");
+    }
+    slides.push({ pill: get("pill"), title: get("title"), subtitle: get("subtitle"), button: get("button"), image, visible: box.querySelector("[data-hvis]").checked });
+  }
+  return slides.length ? slides : JSON.parse(JSON.stringify(ADMIN_DEFAULT_SETTINGS.hero));
+}
+/* ---------- V5 Phase 3: Content-list image uploads (URL ke saath file upload) ---------- Kaunsi list ki kaunsi field par file input lagta hai + file kis Storage folder mein jati hai. Sirf yahan listed (wrap, field) par upload button banta hai — baaki content lists (How/FAQ/Reviews/Budget/Trust/Tabs/Social-proof) mein koi file input nahi aata. Folder naam existing convention jaisay hain (hero/slide-N, custom-sections, profile) — sab aik hi public bucket "product-images" mein. */ const CNT_UPLOAD_FOLDERS = { cntLuxTilesWrap: { img: "luxury-tiles" }, cntLuxBannersWrap: { img: "luxury-banners" }, cntReelsWrap: { avatar: "reels", poster: "reels" }, cntBlogWrap: { img: "blog" }, cntCollPagesWrap: { img: "collection-pages" } }; async function collectCntUploads(){ /* Save se pehle: Content-list rows mein lagi files upload karo (hero jaisa deferred pattern — file Save par upload hoti hai, select par sirf preview). Upload fail ho to throw karta hai aur poora save ruk jata hai (purani URL barkarar rehti hai — input bhi, DB bhi). File ho to typed URL par jeet-ti hai (product flow jaisa). */ for (const [wrapId, fields] of Object.entries(CNT_UPLOAD_FOLDERS)){ const wrap = document.getElementById(wrapId); if (!wrap) continue; for (const row of wrap.querySelectorAll(".cnt-row")){ for (const [key, folder] of Object.entries(fields)){ const inp = row.querySelector(`[data-cntfile="${key}"]`); const file = inp && inp.files && inp.files[0]; if (!file) continue; const msg = row.querySelector(`[data-cntmsg="${key}"]`); const urlInp = row.querySelector(`[data-f="${key}"]`); const prev = row.querySelector(`[data-cntprev="${key}"]`); setUploadMsg(msg, "Image upload ho rahi hai…"); const url = await uploadImage(file, folder); if (urlInp) urlInp.value = url; if (prev) prev.src = url; inp.value = ""; setUploadMsg(msg, "✅ Image upload ho gayi.", "ok"); } } } } $("#addSlideBtn").onclick = () => {
+  syncHeroFromDom();
+  if (heroState.length >= 4){ showToast("Zyada se zyada 4 hero slides ho sakti hain.", "err"); return; }
+  heroState.push({ pill: "", title: "", subtitle: "", button: "SHOP NOW", image: "", visible: true });
+  renderHeroEditor();
+};
+/* ---------- V5 Phase 2a: "Sections" tab — sab section editing aik jagah ----------
+   Har section (SECTION_DEFS, 21 keys) ka aik card: style controls
+   (settings.sectionStyles) + heading eyebrow/title (settings.sectionText).
+   Cards/total sirf product-grid sections par; price/badge colors sirf grids par;
+   bannerText sirf hero + editorial par; baaqi sections par container controls.
+   Purane tabs (Homepage/Content/Style/Settings) untouched rehte hain — yeh tab
+   unhi keys ko parhta/likhta hai, duplicate source nahi banta. sectionText ke
+   liye dirty-flag rule: jo tab badla gaya, usi ki values save hoti hain
+   (dono badle hon to Sections tab jeet-ta hai — §6 flag). */
+let sectionsFilled = false;
+let sectionsTextDirty = false;
+let contentTextDirty = false;
+let sectionsListenersBound = false;
+const SECTION_STYLE_GRID_KEYS = ["best_sellers", "new_arrivals", "deals", "all_products"];
+const SECTION_STYLE_BAND_KEYS = ["featured", "hero", "editorial"];
+const SECTION_TO_TEXT_KEY = { categories: "categories", best_sellers: "best", hot: "hot", new_arrivals: "arrivals", deals: "deals", budget: "budget", how_to_order: "howto", faq: "faq", testimonials: "reviews", festive: "festive", unstitched_tabs: "unstitched_tabs", readytowear_tabs: "readytowear_tabs", all_products: "all_products" };
+function clampSsInt(v, lo, hi){ const n = parseInt(v, 10); if (!Number.isFinite(n)) return 0; return Math.max(lo, Math.min(hi, n)); }
+function sanitizeSectionStyleAdmin(raw){
+  if (!raw || typeof raw !== "object") return null;
+  const o = {};
+  const cd = clampSsInt(raw.cardsDesktop, 1, 6); if (cd) o.cardsDesktop = cd;
+  const cm = clampSsInt(raw.cardsMobile, 1, 3); if (cm) o.cardsMobile = cm;
+  const tt = clampSsInt(raw.total, 1, 50); if (tt) o.total = tt;
+  const hd = clampSsInt(raw.heightDesktop, 0, 1200); if (hd) o.heightDesktop = hd;
+  const hm = clampSsInt(raw.heightMobile, 0, 1200); if (hm) o.heightMobile = hm;
+  if (["full", "boxed", "narrow"].indexOf(String(raw.widthMode || "")) !== -1) o.widthMode = String(raw.widthMode);
+  const mw = clampSsInt(raw.maxWidth, 320, 1600); if (mw) o.maxWidth = mw;
+  if (["left", "center", "right"].indexOf(String(raw.align || "")) !== -1) o.align = String(raw.align);
+  if (raw.bold === true) o.bold = true;
+  if (raw.italic === true) o.italic = true;
+  const cols = {};
+  if (raw.colors && typeof raw.colors === "object"){
+    ["heading", "text", "buttonBg", "buttonText", "price", "badge", "badgeText", "bannerText"].forEach(function(f){ const c = adminStyleColor(raw.colors[f]); if (c) cols[f] = c; });
+  }
+  if (Object.keys(cols).length) o.colors = cols;
+  const bg = adminStyleColor(raw.bg); if (bg) o.bg = bg;
+  const pd = clampSsInt(raw.padding, 0, 120); if (pd) o.padding = pd;
+  const mg = clampSsInt(raw.margin, 0, 120); if (mg) o.margin = mg;
+  return Object.keys(o).length ? o : null;
+}
+function mergeAdminSectionStyles(out, raw){
+  if (!raw || !raw.sectionStyles || typeof raw.sectionStyles !== "object") return;
+  if (!out.sectionStyles || typeof out.sectionStyles !== "object") out.sectionStyles = {};
+  SECTION_DEFS.forEach(function(d){
+    const s = sanitizeSectionStyleAdmin(raw.sectionStyles[d.key]);
+    if (s) out.sectionStyles[d.key] = s;
+  });
+}
+function renderSectionsTab(styles, text){
+  const wrap = document.getElementById("secStyleWrap");
+  if (!wrap) return;
+  styles = styles || {};
+  text = text || {};
+  const themeKey = v4AdminThemeKey();
+  const renderable = v4AdminRenderableSectionsFor(themeKey);
+  wrap.innerHTML = SECTION_DEFS.map(function(d){
+    const key = d.key;
+    const st = (styles[key] && typeof styles[key] === "object") ? styles[key] : {};
+    const cols = st.colors || {};
+    const isGrid = SECTION_STYLE_GRID_KEYS.indexOf(key) !== -1;
+    const isBand = SECTION_STYLE_BAND_KEYS.indexOf(key) !== -1;
+    const isHot = key === "hot";
+    const tKey = SECTION_TO_TEXT_KEY[key];
+    const t = (tKey && text[tKey]) || {};
+    const ok = renderable.indexOf(key) !== -1;
+    const field = function(inner){ return '<div class="ss-field">' + inner + '</div>'; };
+    const num = function(f, label, min, max, ph){
+      return field('<label>' + label + '</label><input type="number" data-ss-field="' + f + '" min="' + min + '" max="' + max + '" placeholder="' + (ph || "") + '" value="' + esc(st[f] == null ? "" : String(st[f])) + '">');
+    };
+    const colPair = function(f, label){
+      const v = cols[f] || "";
+      return field('<label>' + label + '</label><div class="color-row"><input type="color" data-ss-color="' + f + '" value="' + (isHexColor(v) ? v : "#ffffff") + '"><input type="text" data-ss-hex="' + f + '" placeholder="#RRGGBB ya khaali" value="' + esc(v) + '"></div>');
+    };
+    const sel = function(f, label, opts){
+      let s = field('<label>' + label + '</label><select data-ss-field="' + f + '">');
+      opts.forEach(function(o){ s += '<option value="' + o[0] + '"' + (String(st[f] || "") === o[0] ? " selected" : "") + '>' + o[1] + '</option>'; });
+      return s + '</select></div>';
+    };
+    let h = '<div class="settings-box" data-ss-key="' + esc(key) + '"' + (ok ? '' : ' style="opacity:.55"') + '>';
+    h += '<h4>' + esc(d.label) + (ok ? '' : ' <span style="font-size:12px;color:var(--muted)">(is theme par nahi dikhta)</span>') + '</h4>';
+    h += '<p style="color:var(--muted);font-size:13px;margin-bottom:10px">' + esc(d.sub || "") + '</p>';
+    h += '<div class="ss-grid">';
+    if (isGrid){
+      h += num("cardsDesktop", "Desktop — aik row mein cards (1–6)", 1, 6, "4");
+      h += num("cardsMobile", "Mobile — aik row mein cards (1–3)", 1, 3, "2");
+      h += num("total", "Kul cards (khaali = default)", 1, 50, key === "best_sellers" ? "8" : key === "new_arrivals" ? "20" : key === "deals" ? "8" : "sab");
+    } else if (isHot){
+      h += num("total", "Kul cards (khaali = 10)", 1, 50, "10");
+    }
+    h += num("heightDesktop", "Height — desktop (px, khaali = auto)", 0, 1200, "");
+    h += num("heightMobile", "Height — mobile (px, khaali = auto)", 0, 1200, "");
+    h += sel("widthMode", "Width", [["", "Theme default"], ["full", "Full width"], ["boxed", "Boxed"], ["narrow", "Narrow"]]);
+    h += num("maxWidth", "Max width — Boxed/Narrow (px)", 320, 1600, "1180");
+    h += sel("align", "Text alignment", [["", "Theme default"], ["left", "Left"], ["center", "Center"], ["right", "Right"]]);
+    h += field('<label class="checkline"><input type="checkbox" data-ss-field="bold"' + (st.bold ? " checked" : "") + '> Bold</label>');
+    h += field('<label class="checkline"><input type="checkbox" data-ss-field="italic"' + (st.italic ? " checked" : "") + '> Italic</label>');
+    h += colPair("heading", "Heading rang");
+    h += colPair("text", "Text rang");
+    if (isGrid || isBand) h += colPair("buttonBg", "Button background");
+    if (isGrid || isBand) h += colPair("buttonText", "Button text rang");
+    if (isGrid) h += colPair("price", "Price rang");
+    if (isGrid) h += colPair("badge", "Discount badge background");
+    if (isGrid) h += colPair("badgeText", "Discount badge text");
+    if (key === "hero" || key === "editorial") h += colPair("bannerText", "Banner text rang");
+    h += field('<label>Section background</label><div class="color-row"><input type="color" data-ss-color="bg" value="' + (isHexColor(st.bg) ? st.bg : "#ffffff") + '"><input type="text" data-ss-hex="bg" placeholder="#RRGGBB ya khaali" value="' + esc(st.bg || "") + '"></div>');
+    h += num("padding", "Padding — upar/neeche (px)", 0, 120, "52");
+    h += num("margin", "Margin — upar/neeche (px)", 0, 120, "0");
+    if (tKey){
+      h += field('<label>Heading — chhota upar wala text</label><input type="text" data-ss-eyebrow value="' + esc(t.eyebrow || "") + '" placeholder="Khaali = asal heading">');
+      h += field('<label>Heading — bara title</label><input type="text" data-ss-title value="' + esc(t.title || "") + '" placeholder="Khaali = asal heading">');
+    }
+    h += '</div></div>';
+    return h;
+  }).join("");
+  wrap.querySelectorAll("[data-ss-key]").forEach(function(card){
+    card.querySelectorAll("[data-ss-color]").forEach(function(cEl){
+      const hexEl = card.querySelector('[data-ss-hex="' + cEl.dataset.ssColor + '"]');
+      bindColorPair(cEl, hexEl);
+    });
+  });
+  sectionsTextDirty = false;
+}
+function fillSections(s){
+  const styles = (s && s.sectionStyles) || {};
+  const text = (s && s.sectionText) || {};
+  renderSectionsTab(styles, text);
+  if (!sectionsListenersBound){
+    sectionsListenersBound = true;
+    const wrap = document.getElementById("secStyleWrap");
+    if (wrap) wrap.addEventListener("input", function(e){
+      const t = e.target;
+      if (t && (t.hasAttribute("data-ss-eyebrow") || t.hasAttribute("data-ss-title"))) sectionsTextDirty = true;
+    });
+    const cp = document.getElementById("contentPanel");
+    if (cp) cp.addEventListener("input", function(e){
+      const t = e.target;
+      if (t && t.id && t.id.indexOf("cntSec_") === 0) contentTextDirty = true;
+    });
+  }
+  sectionsFilled = true;
+}
+function readSectionStyles(){
+  const base = JSON.parse(JSON.stringify((SETTINGS_STATE && SETTINGS_STATE.sectionStyles) || {}));
+  if (!sectionsFilled) return base;
+  const wrap = document.getElementById("secStyleWrap");
+  if (!wrap) return base;
+  wrap.querySelectorAll("[data-ss-key]").forEach(function(card){
+    const key = card.dataset.ssKey;
+    if (!key) return;
+    const raw = {};
+    card.querySelectorAll("[data-ss-field]").forEach(function(inp){
+      const f = inp.dataset.ssField;
+      if (!f) return;
+      if (inp.type === "checkbox") raw[f] = !!inp.checked;
+      else raw[f] = inp.value;
+    });
+    const cols = {};
+    card.querySelectorAll("[data-ss-hex]").forEach(function(hexEl){
+      const f = hexEl.dataset.ssHex;
+      if (!f || f === "bg") return;
+      const v = adminStyleColor(hexEl.value);
+      if (v) cols[f] = v;
+    });
+    if (Object.keys(cols).length) raw.colors = cols;
+    const bgEl = card.querySelector('[data-ss-hex="bg"]');
+    const bg = bgEl ? adminStyleColor(bgEl.value) : "";
+    if (bg) raw.bg = bg;
+    const s = sanitizeSectionStyleAdmin(raw);
+    if (s) base[key] = s; else delete base[key];
+  });
+  return base;
+}
+function readSectionsText(){
+  const out = {};
+  const wrap = document.getElementById("secStyleWrap");
+  if (!wrap) return out;
+  wrap.querySelectorAll("[data-ss-key]").forEach(function(card){
+    const key = card.dataset.ssKey;
+    const tKey = SECTION_TO_TEXT_KEY[key];
+    if (!tKey) return;
+    const eb = card.querySelector("[data-ss-eyebrow]");
+    const ti = card.querySelector("[data-ss-title]");
+    const e = eb ? eb.value.trim() : "", t = ti ? ti.value.trim() : "";
+    if (e || t) out[tKey] = { eyebrow: e, title: t };
+  });
+  return out;
+}
+
+function fillSettings(s){
+  $("#setStoreName").value = s.store_name;
+  $("#setWhatsapp").value = s.whatsapp_number;
+  /* V3 Part B: SEO */
+  if ($("#setSeoTitle")) $("#setSeoTitle").value = s.seo_title || "";
+  if ($("#setSeoDesc")) $("#setSeoDesc").value = s.seo_description || "";
+  s.announcements.forEach((a,i) => { document.getElementById("setAnn" + (i + 1)).value = a; });
+  heroState = JSON.parse(JSON.stringify(s.hero));
+  renderHeroEditor();
+  [1,2].forEach(n => {
+    const p = s.promo[n - 1];
+    document.getElementById(`setP${n}Kicker`).value = p.kicker || "";
+    document.getElementById(`setP${n}Heading`).value = p.heading || "";
+    document.getElementById(`setP${n}Text`).value = p.text || "";
+    document.getElementById(`setP${n}Category`).value = p.category || "";
+  });
+  $("#setAboutHeading").value = s.about_heading;
+  $("#setAboutText").value = s.about_text;
+  document.querySelectorAll("[data-sec]").forEach(cb => { cb.checked = s.sections[cb.dataset.sec] !== false; });
+  document.querySelectorAll("[data-pol]").forEach(ta => { ta.value = s.policies[ta.dataset.pol] || ""; });
+  $("#profLogo").value = s.profile.logo_url || "";
+  $("#profEmail").value = s.profile.email || "";
+  $("#profPhone").value = s.profile.phone || "";
+  $("#profAddress").value = s.profile.address || "";
+  /* V2 tabs bhi isi merged settings se bharte hain */
+  seedHomepage(s);
+  fillAppearance(s);
+  fillStyle(s);
+  fillContent(s);
+  fillSections(s);
+  fillMeta(s); /* V5 Phase 5: Meta tab bharein. */
+  /* V4 Phase 2: active theme ke controls dikhayein/chhupayein. */
+  applyThemeVisibility();
+}
+async function loadSettings(){
+  settingsLoaded = true;
+  const msg = $("#settingsMsg");
+  try {
+    const { data, error } = await sb.from("settings").select("data").eq("store_id", STORE_ID).maybeSingle();
+    if (error) throw error;
+    SETTINGS_STATE = mergeAdminSettings(data && data.data);
+    fillSettings(SETTINGS_STATE);
+  } catch (e) {
+    SETTINGS_STATE = mergeAdminSettings(null);
+    fillSettings(SETTINGS_STATE);
+    msg.textContent = "Settings load nahi huye (migration run hai?); defaults dikhaye ja rahe hain: " + e.message;
+    msg.className = "msg err";
+  }
+}
+/* ---------- Drag-reorder helper (Homepage sections + custom fields) ----------
+   Row sirf ⠿ handle par mouse-down se draggable banta hai, taa ke inputs
+   mein text select/edit karna drag se takraye nahi. */
+function bindDragRows(container, rowSel){
+  if (!container) return;
+  let dragEl = null;
+  container.querySelectorAll(rowSel).forEach(row => {
+    const handle = row.querySelector(".drag-handle");
+    if (!handle) return;
+    handle.addEventListener("mousedown", () => { row.draggable = true; });
+    handle.addEventListener("mouseup", () => { if (!dragEl) row.draggable = false; });
+    row.addEventListener("dragstart", e => {
+      dragEl = row;
+      row.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      try { e.dataTransfer.setData("text/plain", ""); } catch (err) {}
+    });
+    row.addEventListener("dragend", () => {
+      row.classList.remove("dragging");
+      row.draggable = false;
+      dragEl = null;
+      container.querySelectorAll(rowSel).forEach(r => r.classList.remove("dragover"));
+    });
+    row.addEventListener("dragover", e => {
+      if (!dragEl || dragEl === row) return;
+      e.preventDefault();
+      container.querySelectorAll(rowSel).forEach(r => r.classList.remove("dragover"));
+      row.classList.add("dragover");
+    });
+    row.addEventListener("drop", e => {
+      e.preventDefault();
+      if (!dragEl || dragEl === row) return;
+      const rows = [...container.querySelectorAll(rowSel)];
+      if (rows.indexOf(dragEl) < rows.indexOf(row)) row.after(dragEl); else row.before(dragEl);
+      row.classList.remove("dragover");
+    });
+  });
+}
+
+/* ---------- Homepage Builder ---------- */
+function legacyVisible(s, key){
+  const lk = LEGACY_SEC[key];
+  return lk ? s.sections[lk] !== false : true;
+}
+function seedHomepage(s){
+  HP_CUSTOM = {};
+  (s.custom_sections || []).forEach(c => { HP_CUSTOM[c.id] = { heading: c.heading, text: c.text, img: c.img, btn_label: c.btn_label, btn_link: c.btn_link }; });
+  const known = SECTION_DEFS.map(d => d.key);
+  const saved = Array.isArray(s.sections_order) ? s.sections_order : null;
+  if (saved && saved.length){
+    HP_ORDER = saved
+      .filter(e => known.includes(e.key) || (e.key.startsWith("custom:") && HP_CUSTOM[e.key.slice(7)]))
+      .map(e => ({ key: e.key, visible: e.visible !== false }));
+    known.forEach(k => { if (!HP_ORDER.some(e => e.key === k)) HP_ORDER.push({ key: k, visible: legacyVisible(s, k) }); });
+    Object.keys(HP_CUSTOM).forEach(id => { if (!HP_ORDER.some(e => e.key === "custom:" + id)) HP_ORDER.push({ key: "custom:" + id, visible: true }); });
+  } else {
+    HP_ORDER = SECTION_DEFS.map(d => ({ key: d.key, visible: legacyVisible(s, d.key) }));
+    Object.keys(HP_CUSTOM).forEach(id => HP_ORDER.push({ key: "custom:" + id, visible: true }));
+  }
+  /* Builder hamesha poori list dikhata hai — jo section is theme par render nahi hota, woh grey + disabled rehta hai (renderHomepage). Koi key kabhi builder se nahi hat-ti, is liye stale theme par bhi koi rendered section gum nahi hota. */ var v4Renderable = v4AdminRenderableSectionsFor(s.theme); HP_LUX_WARN = HP_ORDER.filter(e => !e.key.startsWith("custom:") && v4Renderable.indexOf(e.key) === -1).map(e => e.key); homepageFilled = true;
+  renderHomepage();
+}
+function renderHomepage(){
+  const wrap = $("#sectionsWrap");
+  if (!wrap) return;
+  wrap.innerHTML = (HP_LUX_WARN.length ? `<div class="msg warn" style="margin-bottom:10px">⚠️ Grey rows is theme par nahi dikhte — unhein hide/show ya drag nahi kiya ja sakta: ${HP_LUX_WARN.map(esc).join(", ")}</div>` : "") + HP_ORDER.map((e, i) => {
+    if (e.key.startsWith("custom:")){
+      const id = e.key.slice(7);
+      const c = HP_CUSTOM[id] || { heading: "", text: "", img: "", btn_label: "", btn_link: "" };
+      return `<div class="sec-row" data-seckey="${esc(e.key)}">
+        <div class="sec-line">
+          <span class="drag-handle" title="Drag karke tartib badlein">⠿</span>
+          <span class="sec-name">🧩 Custom Section<small data-cusname>${esc(c.heading || "Bina heading ke")}</small></span>
+          <label class="checkline" style="border:0;padding:2px"><input type="checkbox" data-secvis ${e.visible ? "checked" : ""}> 👁 Show</label>
+          <button class="btn small danger" type="button" data-secdel>Delete</button>
+          <span class="sec-move"><button class="btn small" type="button" data-secmove="-1" title="Upar le jayein"${i === 0 ? " disabled" : ""}>↑</button><button class="btn small" type="button" data-secmove="1" title="Neeche le jayein"${i === HP_ORDER.length - 1 ? " disabled" : ""}>↓</button></span>
+        </div>
+        <div class="custom-editor" data-customeditor="${esc(id)}">
+          <div class="settings-grid">
+            <div>
+              <label>Heading</label><input data-cf="heading" value="${esc(c.heading)}" placeholder="e.g. Hamari Kahani">
+              <label>Button label (optional)</label><input data-cf="btn_label" value="${esc(c.btn_label)}" placeholder="e.g. Aur Jaanein">
+              <label>Button link (optional)</label><input data-cf="btn_link" value="${esc(c.btn_link)}" placeholder="https://… ya #section">
+            </div>
+            <div>
+              <label>Image URL</label><input data-cf="img" value="${esc(c.img)}" placeholder="https://…">
+              <label>Ya image upload karein</label>
+              <div class="upload-row"><input type="file" data-cfile accept="image/*"></div>
+              <p class="upload-msg" data-cmsg></p>
+            </div>
+          </div>
+          <label>Text</label><textarea data-cf="text" rows="3" placeholder="Section ka text…">${esc(c.text)}</textarea>
+        </div>
+      </div>`;
+    }
+    const def = SECTION_DEFS.find(d => d.key === e.key) || { label: e.key, sub: "" };
+     const off = HP_LUX_WARN.indexOf(e.key) !== -1;
+    return `<div class="sec-row${off ? " sec-off" : ""}" data-seckey="${esc(e.key)}">
+      <div class="sec-line">
+        <span class="drag-handle" title="Drag karke tartib badlein">⠿</span>
+        <span class="sec-name">${esc(def.label)}<small>${esc(def.sub)}${off ? " — is theme par nahi dikhta" : ""}</small></span>
+        <label class="checkline" style="border:0;padding:2px"><input type="checkbox" data-secvis ${e.visible ? "checked" : ""}${off ? " disabled" : ""}> 👁 Show</label>
+        <span class="sec-move"><button class="btn small" type="button" data-secmove="-1" title="Upar le jayein"${i === 0 ? " disabled" : ""}>↑</button><button class="btn small" type="button" data-secmove="1" title="Neeche le jayein"${i === HP_ORDER.length - 1 ? " disabled" : ""}>↓</button></span>
+      </div>
+    </div>`;
+  }).join("");
+  bindDragRows(wrap, ".sec-row");
+  wrap.querySelectorAll("[data-secdel]").forEach(b => b.onclick = () => {
+    syncHomepageFromDom();
+    const key = b.closest(".sec-row").dataset.seckey;
+    HP_ORDER = HP_ORDER.filter(e => e.key !== key);
+    if (key.startsWith("custom:")) delete HP_CUSTOM[key.slice(7)];
+    renderHomepage();     
+  });
+   wrap.querySelectorAll("[data-secmove]").forEach(b => b.onclick = () => {
+      syncHomepageFromDom();
+      const key = b.closest(".sec-row").dataset.seckey;
+      const idx = HP_ORDER.findIndex(e => e.key === key);
+      const ni = idx + (+b.dataset.secmove || 0);
+      if (idx < 0 || ni < 0 || ni >= HP_ORDER.length) return;
+      const tmp = HP_ORDER[idx]; HP_ORDER[idx] = HP_ORDER[ni]; HP_ORDER[ni] = tmp;
+      renderHomepage();
+   });
+  wrap.querySelectorAll("[data-cfile]").forEach(inp => inp.addEventListener("change", async () => {
+    const file = inp.files && inp.files[0];
+    if (!file) return;
+    const ed = inp.closest(".custom-editor");
+    const msg = ed.querySelector("[data-cmsg]");
+    try {
+            setUploadMsg(msg, "Image upload ho rahi hai…");
+       const url = await uploadImage(file, "custom-sections");
+      ed.querySelector('[data-cf="img"]').value = url;
+      setUploadMsg(msg, "✅ Image upload ho gayi — Save karna na bhoolein.", "ok");
+    } catch (err) {
+      setUploadMsg(msg, "Upload fail: " + err.message, "err");
+    }
+  }));
+}
+function syncHomepageFromDom(){
+  const wrap = $("#sectionsWrap");
+  if (!wrap) return;
+  const rows = [...wrap.querySelectorAll(".sec-row")];
+  if (rows.length) HP_ORDER = rows.map(r => ({ key: r.dataset.seckey, visible: r.querySelector("[data-secvis]").checked }));
+  wrap.querySelectorAll("[data-customeditor]").forEach(ed => {
+    const g = f => ed.querySelector(`[data-cf="${f}"]`).value;
+    HP_CUSTOM[ed.dataset.customeditor] = { heading: g("heading"), text: g("text"), img: g("img"), btn_label: g("btn_label"), btn_link: g("btn_link") };
+  });
+}
+$("#addCustomSectionBtn").onclick = () => {
+  syncHomepageFromDom();
+  const id = "c" + Date.now().toString(36);
+  HP_CUSTOM[id] = { heading: "", text: "", img: "", btn_label: "", btn_link: "" };
+  HP_ORDER.push({ key: "custom:" + id, visible: true });
+  renderHomepage();
+  const ed = document.querySelector(`[data-customeditor="${id}"]`);
+  if (ed) ed.scrollIntoView({ behavior: "smooth", block: "center" });
+};
+
+/* ---------- Appearance ---------- */
+function updateLogoPreview(url){
+  const img = $("#appLogoPreview");
+  if (!img) return;
+  if (url){ img.src = url; img.classList.remove("hidden"); }
+  else { img.classList.add("hidden"); img.removeAttribute("src"); }
+}
+function renderSwatches(){
+  const wrap = $("#themeSwatches");
+  if (!wrap) return;
+  wrap.innerHTML = THEME_SWATCHES.map(t => `<button type="button" class="swatch" data-swatch="${t.color}" title="${esc(t.name)}" style="background:${t.color}"></button>`).join("")
+    + `<span style="font-size:12.5px;color:var(--muted)">Preset rang — ya upar color picker se koi bhi rang chunein</span>`;
+  wrap.querySelectorAll("[data-swatch]").forEach(b => b.onclick = () => { $("#appThemeColor").value = b.dataset.swatch; markSwatch(); });
+  markSwatch();
+}
+function markSwatch(){
+  const cur = ($("#appThemeColor").value || "").toLowerCase();
+  document.querySelectorAll("#themeSwatches [data-swatch]").forEach(b => b.classList.toggle("active", b.dataset.swatch.toLowerCase() === cur));
+}
+function linkRowHtml(l = {}){
+  return `<div class="link-row">
+    <input type="text" data-lk="label" placeholder="Label (e.g. Home)" value="${esc(l.label || "")}">
+    <input type="text" data-lk="url" placeholder="URL (e.g. index.html, #faq, https://…)" value="${esc(l.url || "")}">
+    <button class="btn small ghost" type="button" data-lup title="Upar le jayein">↑</button>
+    <button class="btn small ghost" type="button" data-ldown title="Neeche le jayein">↓</button>
+    <button class="btn small danger" type="button" data-ldel title="Link hatayein">✕</button>
+  </div>`;
+}
+function bindLinkRows(wrap){
+  if (!wrap) return;
+  wrap.querySelectorAll(".link-row").forEach(row => {
+    row.querySelector("[data-ldel]").onclick = () => row.remove();
+    row.querySelector("[data-lup]").onclick = () => { const prev = row.previousElementSibling; if (prev) wrap.insertBefore(row, prev); };
+    row.querySelector("[data-ldown]").onclick = () => { const next = row.nextElementSibling; if (next) wrap.insertBefore(next, row); };
+  });
+}
+function renderLinkRows(wrap, links){
+  if (!wrap) return;
+  wrap.innerHTML = (links || []).map(l => linkRowHtml(l)).join("");
+  bindLinkRows(wrap);
+}
+function readLinkRows(wrap){
+  if (!wrap) return [];
+  return [...wrap.querySelectorAll(".link-row")].map(r => ({
+    label: r.querySelector('[data-lk="label"]').value.trim(),
+    url: r.querySelector('[data-lk="url"]').value.trim()
+  })).filter(l => l.label || l.url);
+}
+/* Custom fields (checkout / products) */
+const FIELD_TYPES = ["text", "number", "select", "textarea"];
+function fieldRowHtml(f = {}){
+  const opts = Array.isArray(f.options) ? f.options.join(", ") : String(f.options || "");
+  return `<div class="fld-row" data-fid="${esc(f.id || "")}">
+    <span class="drag-handle" title="Drag karke tartib badlein">⠿</span>
+    <input type="text" data-ff="label" placeholder="Field label (e.g. Order Note)" value="${esc(f.label || "")}" style="flex:1;min-width:130px">
+    <select data-ff="type">${FIELD_TYPES.map(t => `<option value="${t}" ${t === (f.type || "text") ? "selected" : ""}>${t}</option>`).join("")}</select>
+    <input type="text" data-ff="options" placeholder="Options — select ke liye, comma se (S, M, L)" value="${esc(opts)}" style="flex:1;min-width:150px">
+    <label class="checkline" style="border:0;padding:2px"><input type="checkbox" data-ff="required" ${f.required ? "checked" : ""}> Required</label>
+    <button class="btn small danger" type="button" data-fdel title="Field hatayein">✕</button>
+  </div>`;
+}
+function bindFieldRows(wrap){
+  if (!wrap) return;
+  bindDragRows(wrap, ".fld-row");
+  wrap.querySelectorAll("[data-fdel]").forEach(b => b.onclick = () => b.closest(".fld-row").remove());
+}
+function renderFieldRows(wrap, fields){
+  if (!wrap) return;
+  wrap.innerHTML = (fields || []).map(f => fieldRowHtml(f)).join("");
+  bindFieldRows(wrap);
+}
+function readFieldRows(wrap){
+  if (!wrap) return [];
+  return [...wrap.querySelectorAll(".fld-row")].map(r => {
+    const g = k => r.querySelector(`[data-ff="${k}"]`);
+    return {
+      id: r.dataset.fid || ("f" + Math.random().toString(36).slice(2, 9)),
+      label: g("label").value.trim(),
+      type: g("type").value,
+      options: g("options").value.split(",").map(x => x.trim()).filter(Boolean),
+      required: g("required").checked
+    };
+  }).filter(f => f.label);
+}
+/* ---------- V3: Theme picker (Appearance tab, TOP) ----------
+   Allowed list = store ki allowed_themes (Super Admin se); [] = sab.
+   Disallowed themes lock ke saath dikhti hain, click nahi hoti. */
+let ADMIN_THEME_SELECTED = "";
+function renderThemePicker(){
+  var wrap = $("#themeGrid");
+  if (!wrap) return;
+  var themes = window.SHOPNEST_THEMES || [];
+  var allowed = window.SHOPNEST_ALLOWED_THEMES ? window.SHOPNEST_ALLOWED_THEMES(STORE_ALLOWED_THEMES) : themes;
+  var allowedKeys = allowed.map(function(t){ return t.key; });
+  wrap.innerHTML = themes.map(function(t){
+    var ok = allowedKeys.indexOf(t.key) !== -1;
+    var sel = ADMIN_THEME_SELECTED === t.key;
+    var dots = `<span class="theme-dots"><i style="background:${t.palette.primary}"></i><i style="background:${t.palette.accent}"></i><i style="background:${t.palette.header}"></i></span>`;
+    return `<button type="button" class="theme-card ${sel ? "selected" : ""} ${ok ? "" : "locked"}" data-theme="${t.key}" ${ok ? "" : "disabled"}>${dots}<h5>${t.name} <small>(${t.nameUr})</small></h5><p>${t.tagline}</p><p><small>${t.business}</small></p><p><small>\u{1F4D0} Layout: ${t.layoutDesc || ""}</small></p>${sel ? "<p><strong>✓ Selected</strong></p>" : ""}${ok ? "" : "<p><strong>🔒 Super Admin ne ye theme allow nahi ki</strong></p>"}</button>`;
+  }).join("");
+  wrap.querySelectorAll("[data-theme]").forEach(function(b){
+    b.onclick = function(){ ADMIN_THEME_SELECTED = b.dataset.theme; renderThemePicker(); };
+  });
+  var note = $("#themeNote");
+  if (note){
+    var cur = themes.find(function(t){ return t.key === ADMIN_THEME_SELECTED; });
+    note.textContent = cur ? ("Selected theme: " + cur.name + " — Save dabane par store par lag jayega.")
+      : "Koi theme select nahi — store default (General) look par chalega.";
+  }
+}
+function fillAppearance(s){
+  ADMIN_THEME_SELECTED = (s.theme && window.SHOPNEST_THEME_KNOWN && window.SHOPNEST_THEME_KNOWN(s.theme)) ? s.theme : "";
+  renderThemePicker();
+  $("#appFont").value = fontNameOf(s.font_family);
+  $("#appThemeColor").value = /^#[0-9a-fA-F]{6}$/.test(s.theme_color || "") ? s.theme_color : "#0A2B4E";
+  renderSwatches();
+  const logo = s.logo_url || (s.profile && s.profile.logo_url) || "";
+  $("#appLogoUrl").value = logo;
+  updateLogoPreview(logo);
+  $("#socFacebook").value = s.socials.facebook || "";
+  $("#socInstagram").value = s.socials.instagram || "";
+  $("#socTiktok").value = s.socials.tiktok || "";
+  $("#socYoutube").value = s.socials.youtube || "";
+  $("#socX").value = s.socials.x || "";
+  $("#socWhatsapp").value = s.socials.whatsapp || "";
+  renderLinkRows($("#menuLinksWrap"), s.menu_links);
+  renderLinkRows($("#footerLinksWrap"), s.footer_links);
+  $("#footerText").value = s.footer_text || "";
+  renderFieldRows($("#checkoutFieldsWrap"), s.checkout_fields);
+  renderFieldRows($("#productFieldsWrap"), s.product_fields);
+}
+/* ---------- V3.2: Style Editor (admin "Style" tab) ----------
+   Storage: settings.data.style (storefront ke shape se match). Save
+   shared persistAllSettings se hota hai — Style tab ki save doosre tabs
+   ki values ko wipe nahi karti (data SETTINGS_STATE clone se banta hai).
+   Validation: rang sirf #RRGGBB ya chhoti named allowlist, warna khaali
+   (theme default) — koi raw string kabhi save/storefront style nahi banti. */
+const STYLE_SECTION_KEYS_ADMIN = ["hero", "categories", "best_sellers", "all_products", "promos", "hot", "new_arrivals", "deals", "budget", "about", "how_to_order", "faq", "testimonials"];
+const STYLE_NAMED_ADMIN = ["white", "black", "red", "green", "blue", "pink", "orange", "purple", "navy", "teal", "maroon", "gold", "cream", "beige", "grey", "gray", "brown", "yellow", "transparent"];
+function isHexColor(v){ return /^#[0-9a-fA-F]{6}$/.test(String(v || "").trim()); }
+function adminStyleColor(v){
+  const t = String(v || "").trim();
+  if (!t) return "";
+  if (isHexColor(t)) return t;
+  const low = t.toLowerCase();
+  return STYLE_NAMED_ADMIN.indexOf(low) !== -1 ? low : "";
+}
+function clampRadiusAdmin(v){
+  const n = parseInt(v, 10);
+  if (!Number.isFinite(n)) return "";
+  return Math.min(30, Math.max(0, n));
+}
+let styleFilled = false; /* fillStyle chala ho to hi readStyle DOM parhe — warna SETTINGS_STATE jaisa ka waisa rahe */
+function bindColorPair(colorEl, hexEl){
+  if (!colorEl || !hexEl) return;
+  colorEl.addEventListener("input", () => { hexEl.value = colorEl.value; });
+  hexEl.addEventListener("input", () => { if (isHexColor(hexEl.value.trim())) colorEl.value = hexEl.value.trim(); });
+}
+function setRadiusControl(sliderId, defId, valId, v){
+  const sl = document.getElementById(sliderId), df = document.getElementById(defId), val = document.getElementById(valId);
+  if (!sl || !df || !val) return;
+  if (v === "" || v === null || v === undefined){
+    df.checked = true; sl.disabled = true; sl.value = 18; val.textContent = "Theme default";
+  } else {
+    const r = clampRadiusAdmin(v);
+    df.checked = false; sl.disabled = false; sl.value = r === "" ? 18 : r; val.textContent = (r === "" ? "Theme default" : r + "px");
+  }
+}
+function bindRadiusControl(sliderId, defId, valId){
+  const sl = document.getElementById(sliderId), df = document.getElementById(defId), val = document.getElementById(valId);
+  if (!sl || !df || !val) return;
+  sl.addEventListener("input", () => { val.textContent = sl.value + "px"; });
+  df.addEventListener("change", () => {
+    sl.disabled = df.checked;
+    val.textContent = df.checked ? "Theme default" : sl.value + "px";
+  });
+}
+function renderStyleSections(sections){
+  const body = $("#styleSectionsBody");
+  if (!body) return;
+  var v4StyleKeys = STYLE_SECTION_KEYS_ADMIN.filter(function(k){ return v4StyleKeyVisible(k); });
+  body.innerHTML = v4StyleKeys.map(k => {
+    const def = SECTION_DEFS.find(d => d.key === k) || { label: k };
+    const s = (sections && sections[k]) || {};
+    return `<tr data-skey="${esc(k)}"><td><strong>${esc(def.label)}</strong></td>`
+      + `<td><div class="color-row"><input type="color" data-sbgc value="${isHexColor(s.bg) ? s.bg : "#ffffff"}"><input type="text" data-sbg placeholder="#RRGGBB ya khaali" value="${esc(s.bg || "")}"></div></td>`
+      + `<td><div class="color-row"><input type="color" data-shc value="${isHexColor(s.heading) ? s.heading : "#0A2B4E"}"><input type="text" data-sh placeholder="#RRGGBB ya khaali" value="${esc(s.heading || "")}"></div></td></tr>`;
+  }).join("");
+  body.querySelectorAll("tr").forEach(tr => {
+    bindColorPair(tr.querySelector("[data-sbgc]"), tr.querySelector("[data-sbg]"));
+    bindColorPair(tr.querySelector("[data-shc]"), tr.querySelector("[data-sh]"));
+  });
+}
+function fillStyle(s){
+  const st = (s && s.style) || ADMIN_DEFAULT_SETTINGS.style;
+  const setPair = (colorId, hexId, val) => {
+    const c = document.getElementById(colorId), h = document.getElementById(hexId);
+    if (!c || !h) return;
+    h.value = val || "";
+    if (isHexColor(val)) c.value = val;
+  };
+  setPair("styCardBgC", "styCardBg", st.card.bg);
+  setPair("styCardBorderC", "styCardBorder", st.card.border);
+  setPair("styCardTitleC", "styCardTitle", st.card.titleColor);
+  setPair("styCardPriceC", "styCardPrice", st.card.priceColor);
+  setPair("styBtnBgC", "styBtnBg", st.buttons.primaryBg);
+  setPair("styBtnColorC", "styBtnColor", st.buttons.primaryColor);
+  setPair("styBtnSecC", "styBtnSec", st.buttons.secondaryColor);
+  setPair("styPageHeaderC", "styPageHeader", st.page.headerBg);
+  setPair("styPageFooterC", "styPageFooter", st.page.footerBg);
+  setPair("styPageMarqueeC", "styPageMarquee", st.page.marqueeBg);
+  setPair("styPageBgC", "styPageBg", st.page.pageBg);
+  setPair("styPageTextC", "styPageText", st.page.textColor);
+  const shadow = document.getElementById("styCardShadow");
+  if (shadow) shadow.value = ["", "none", "soft", "strong"].indexOf(st.card.shadow) !== -1 ? st.card.shadow : "";
+  setRadiusControl("styCardRadius", "styCardRadiusDefault", "styCardRadiusVal", st.card.radius);
+  setRadiusControl("styBtnRadius", "styBtnRadiusDefault", "styBtnRadiusVal", st.buttons.radius);
+  const fs = document.getElementById("styBtnFontSize");
+  if (fs) fs.value = ["", "S", "M", "L"].indexOf(st.buttons.fontSize) !== -1 ? st.buttons.fontSize : "";
+  const spE = document.getElementById("stySpEnabled");
+  if (spE) spE.checked = st.socialProof.enabled !== false;
+  const spI = document.getElementById("stySpInterval");
+  if (spI) spI.value = st.socialProof.intervalSec || 20;
+  const spD = document.getElementById("stySpDuration");
+  if (spD) spD.value = st.socialProof.durationSec || 5;
+  renderSpEntries(st.socialProof.entries || []);
+  renderStyleSections(st.sections || {});
+  styleFilled = true;
+}
+function readStyle(){
+  const base = JSON.parse(JSON.stringify((SETTINGS_STATE && SETTINGS_STATE.style) || ADMIN_DEFAULT_SETTINGS.style));
+  if (!styleFilled) return base; /* panel abhi bhara hi nahi — stored style ko chhero mat */
+  const hexVal = id => {
+    const el = document.getElementById(id);
+    if (!el) return undefined;
+    return adminStyleColor(el.value);
+  };
+  const put = (obj, key, id) => { const v = hexVal(id); if (v !== undefined) obj[key] = v; };
+  put(base.card, "bg", "styCardBg");
+  put(base.card, "border", "styCardBorder");
+  put(base.card, "titleColor", "styCardTitle");
+  put(base.card, "priceColor", "styCardPrice");
+  put(base.buttons, "primaryBg", "styBtnBg");
+  put(base.buttons, "primaryColor", "styBtnColor");
+  put(base.buttons, "secondaryColor", "styBtnSec");
+  put(base.page, "headerBg", "styPageHeader");
+  put(base.page, "footerBg", "styPageFooter");
+  put(base.page, "marqueeBg", "styPageMarquee");
+  put(base.page, "pageBg", "styPageBg");
+  put(base.page, "textColor", "styPageText");
+  const shadow = document.getElementById("styCardShadow");
+  if (shadow) base.card.shadow = ["", "none", "soft", "strong"].indexOf(shadow.value) !== -1 ? shadow.value : "";
+  const readRadius = (sliderId, defId) => {
+    const df = document.getElementById(defId), sl = document.getElementById(sliderId);
+    if (!df || !sl) return undefined;
+    return df.checked ? "" : clampRadiusAdmin(sl.value);
+  };
+  const cr = readRadius("styCardRadius", "styCardRadiusDefault");
+  if (cr !== undefined) base.card.radius = cr;
+  const br = readRadius("styBtnRadius", "styBtnRadiusDefault");
+  if (br !== undefined) base.buttons.radius = br;
+  const fs = document.getElementById("styBtnFontSize");
+  if (fs) base.buttons.fontSize = ["", "S", "M", "L"].indexOf(fs.value) !== -1 ? fs.value : "";
+  const body = document.getElementById("styleSectionsBody");
+  if (body){
+    body.querySelectorAll("tr[data-skey]").forEach(tr => {
+      const k = tr.dataset.skey;
+      const bg = tr.querySelector("[data-sbg]"), hd = tr.querySelector("[data-sh]");
+      base.sections[k] = {
+        bg: bg ? adminStyleColor(bg.value) : ((base.sections[k] && base.sections[k].bg) || ""),
+        heading: hd ? adminStyleColor(hd.value) : ((base.sections[k] && base.sections[k].heading) || "")
+      };
+    });
+  }
+  const spE = document.getElementById("stySpEnabled");
+  if (spE) base.socialProof.enabled = spE.checked;
+  const spI = document.getElementById("stySpInterval");
+  if (spI){ const v = parseInt(spI.value, 10); if (Number.isFinite(v)) base.socialProof.intervalSec = Math.max(5, v); }
+  const spD = document.getElementById("stySpDuration");
+  if (spD){ const v = parseInt(spD.value, 10); if (Number.isFinite(v)) base.socialProof.durationSec = Math.max(1, v); }
+  base.socialProof.entries = readSpEntries();
+  delete base.socialProof.demo; /* V3.3: demo flag ab save hi nahi hota */
+  return base;
+}
+/* Static Style pairs + radius controls: sirf ek dafa bind (fillStyle dobara
+   chalne par duplicate listeners nahi lagte — sections rows alag se bind hoti hain). */
+(function bindStyleStatic(){
+  [["styCardBgC", "styCardBg"], ["styCardBorderC", "styCardBorder"], ["styCardTitleC", "styCardTitle"], ["styCardPriceC", "styCardPrice"],
+   ["styBtnBgC", "styBtnBg"], ["styBtnColorC", "styBtnColor"], ["styBtnSecC", "styBtnSec"],
+   ["styPageHeaderC", "styPageHeader"], ["styPageFooterC", "styPageFooter"], ["styPageMarqueeC", "styPageMarquee"],
+   ["styPageBgC", "styPageBg"], ["styPageTextC", "styPageText"]].forEach(([c, h]) => bindColorPair(document.getElementById(c), document.getElementById(h)));
+  bindRadiusControl("styCardRadius", "styCardRadiusDefault", "styCardRadiusVal");
+  bindRadiusControl("styBtnRadius", "styBtnRadiusDefault", "styBtnRadiusVal");
+})();
+
+$("#appThemeColor").addEventListener("input", markSwatch);
+$("#appLogoUrl").addEventListener("input", e => updateLogoPreview(e.target.value.trim()));
+$("#appLogoFile").addEventListener("change", e => {
+  const f = e.target.files && e.target.files[0];
+  if (!f) return;
+  updateLogoPreview(URL.createObjectURL(f));
+  setUploadMsg($("#appLogoMsg"), `Selected: ${f.name} — Save dabane par upload hoga.`);
+});
+$("#addMenuLinkBtn").onclick = () => { $("#menuLinksWrap").insertAdjacentHTML("beforeend", linkRowHtml()); bindLinkRows($("#menuLinksWrap")); };
+$("#addFooterLinkBtn").onclick = () => { $("#footerLinksWrap").insertAdjacentHTML("beforeend", linkRowHtml()); bindLinkRows($("#footerLinksWrap")); };
+$("#addCheckoutFieldBtn").onclick = () => { $("#checkoutFieldsWrap").insertAdjacentHTML("beforeend", fieldRowHtml()); bindFieldRows($("#checkoutFieldsWrap")); };
+$("#addProductFieldBtn").onclick = () => { $("#productFieldsWrap").insertAdjacentHTML("beforeend", fieldRowHtml()); bindFieldRows($("#productFieldsWrap")); };
+
+
+/* ---------- V3.3 Content tab — list editors (generic row pattern) ----------
+   Rows DOM mein hi state hain: up/down DOM nodes move karte hain, delete
+   node hatata hai, save waqt readCntList DOM se parhta hai. onclick
+   assignment se dobara bind karna safe hai (duplicate listener nahi lagta). */
+let contentFilled = false;
+const HOW_FIELDS = [["title", "Step title", "text"], ["text", "Step text", "textarea"]];
+const FAQ_FIELDS = [["q", "Sawal", "text"], ["a", "Jawab", "textarea"]];
+const REVIEW_FIELDS = [["product", "Product (store jaisa naam)", "text"], ["name", "Customer naam", "text"], ["city", "Sheher", "text"], ["rating", "Rating (1–5)", "number"], ["text", "Review text", "textarea"]];
+const BUDGET_FIELDS = [["label", "Label (UNDER / ★ TOP PICKS)", "text"], ["amount", "Amount (Rs.1,499 / HIGHEST RATED)", "text"], ["note", "Note", "text"], ["budget", "Budget value (1499 ya top)", "text"]];
+const TRUST_FIELDS = [["title", "Title", "text"], ["sub", "Sub text", "text"]];
+const SP_FIELDS = [["name", "Naam", "text"], ["product", "Product", "text"], ["city", "Sheher", "text"], ["amount", "Amount", "text"], ["timeText", "Waqt exact", "text"]]; /* V3.6: Instagram reels + blog (Content tab) */ const REEL_FIELDS = [["user", "Instagram username (makeupbydeenak)", "text"], ["avatar", "Avatar image URL (profile photo)", "text"], ["video", "Video link (MP4 ya Instagram reel link)", "text"], ["poster", "Poster/thumbnail image URL", "text"], ["title", "Caption (Wedding Festive)", "text"]]; const BLOG_FIELDS = [["title", "Post title", "text"], ["excerpt", "Short excerpt", "textarea"], ["img", "Image URL", "text"], ["link", "Read-more link (optional)", "text"]]; const LUX_TILE_FIELDS = [["label", "Tile label (FESTIVE WEAR)", "text"], ["cat", "Category naam (bilkul store jaisa)", "text"], ["img", "Image URL (khaali ho to category ki pehli product image)", "text"]]; const LUX_TAB_FIELDS = [["label", "Tab label (Luxury)", "text"], ["cat", "Category naam (bilkul store jaisa)", "text"]]; const LUX_BANNER_FIELDS = [["img", "Banner image URL", "text"], ["eyebrow", "Upar wala chhota text (eyebrow)", "text"], ["title", "Bara heading", "text"], ["button", "Button label (khaali ho to button nahi dikhega)", "text"], ["cat", "Button kholta hai (category naam)", "text"]]; const COLL_PAGE_FIELDS = [["cat", "Category naam (bilkul store jaisa)", "text"], ["title", "Page title (khaali ho to collection ka naam)", "text"], ["subtitle", "Page subtitle (khaali ho to product count)", "text"], ["img", "Collection banner image URL", "text"]];
+function escAttr(v){ return String(v ?? "").replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;"); }
+function cntRowHtml(fields, row, rowClass, wrapId){
+  let h = `<div class="${rowClass || "cnt-row"}">`; const upMap = (wrapId && CNT_UPLOAD_FOLDERS[wrapId]) || {};
+  fields.forEach(([k, label, type]) => {
+    const v = escAttr(row[k] ?? "");
+    h += `<label style="font-size:13px;color:var(--muted)">${label}</label>`;
+    if (type === "textarea") h += `<textarea data-f="${k}" rows="2">${v}</textarea>`;
+    else if (type === "number") h += `<input data-f="${k}" type="number" min="1" max="5" step="0.1" value="${v}">`;
+    else h += `<input data-f="${k}" type="text" value="${v}">`; /* V5 Phase 3: image field par URL ke saath file upload + preview. */ if (upMap[k]) h += `<div class="upload-row"><input type="file" data-cntfile="${k}" accept="image/*"><img class="thumb-sm" data-cntprev="${k}" src="${safeUrl(v) || PLACEHOLDER_IMG}" alt=""></div><p class="upload-msg" data-cntmsg="${k}"></p>`;
+  });
+  h += `<div class="cnt-row-actions"><button class="btn small" type="button" data-cnt-up>↑ Upar</button><button class="btn small" type="button" data-cnt-down>↓ Neeche</button><button class="btn small danger" type="button" data-cnt-del>Delete</button></div></div>`;
+  return h;
+}
+function bindCntRows(wrap){
+  if (!wrap) return;
+  wrap.querySelectorAll(".cnt-row").forEach(row => {
+    row.querySelector("[data-cnt-up]").onclick = () => { const p = row.previousElementSibling; if (p) wrap.insertBefore(row, p); };
+    row.querySelector("[data-cnt-down]").onclick = () => { const n = row.nextElementSibling; if (n) wrap.insertBefore(n, row); };
+    row.querySelector("[data-cnt-del]").onclick = () => row.remove(); /* V5 Phase 3: file select par fori preview + Save ka msg; URL type karne par preview update. */ row.querySelectorAll("[data-cntfile]").forEach(inp => { inp.onchange = () => { const f = inp.files && inp.files[0]; if (!f) return; const prev = row.querySelector(`[data-cntprev="${inp.dataset.cntfile}"]`); const msg = row.querySelector(`[data-cntmsg="${inp.dataset.cntfile}"]`); if (prev) prev.src = URL.createObjectURL(f); setUploadMsg(msg, "Image select ho gayi — Save dabane par upload hogi."); }; }); row.querySelectorAll("[data-cntprev]").forEach(prev => { const urlInp = row.querySelector(`[data-f="${prev.dataset.cntprev}"]`); if (urlInp) urlInp.oninput = () => { const u = urlInp.value.trim(); prev.src = u ? (safeUrl(u) || PLACEHOLDER_IMG) : PLACEHOLDER_IMG; }; });
+  });
+}
+function renderCntList(wrapId, rows, fields, rowClass){
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  wrap.innerHTML = (rows || []).map(r => cntRowHtml(fields, r, rowClass, wrapId)).join("");
+  bindCntRows(wrap);
+}
+function readCntList(wrapId, fields){
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return [];
+  return [...wrap.querySelectorAll(".cnt-row")].map(row => {
+    const o = {};
+    fields.forEach(([k]) => { const el = row.querySelector(`[data-f="${k}"]`); o[k] = el ? el.value.trim() : ""; });
+    return o;
+  }).filter(o => Object.values(o).some(v => v !== ""));
+}
+/* ---------- V5 Phase 4: Custom Pages editor (Content tab) ----------
+Har row = aik page: title, slug (auto title se, English), body (rich text —
+B/I/Link/List toolbar, whitelist HTML), SEO title, header/footer menu
+checkboxes, live preview. Slug unique + URL-safe; khaali slug title se
+banta hai; Urdu title ho to fallback "page-<n>" (admin badal sakta hai).
+Save par readCustomPages() DOM se parhta hai — generic readCntList nahi,
+kyunke slug dedupe + checkbox + body-cap yahin hoti hai. */
+const CUSTOM_PAGE_MAX = 20;
+const CUSTOM_PAGE_BODY_MAX = 20000;
+function slugifyPageTitle(t){ return String(t || "").toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60); }
+function sanitizePageHtmlAdmin(html){
+  /* Storefront sanitizePageHtml ki copy — admin aur storefront alag files
+  hain, shared module nahi (mergeSettings bhi dono mein duplicate hai).
+  Dono ka output aik jaisa hona chahiye (harness H-P). */
+  var allowed = { B: 1, STRONG: 1, I: 1, EM: 1, A: 1, UL: 1, OL: 1, LI: 1, P: 1, BR: 1, H2: 1, H3: 1 };
+  var drop = { SCRIPT: 1, STYLE: 1, IFRAME: 1, OBJECT: 1, EMBED: 1, FORM: 1, INPUT: 1, BUTTON: 1, IMG: 1, VIDEO: 1, AUDIO: 1 };
+  var div = document.createElement("div");
+  div.innerHTML = String(html || "");
+  var walk = function(node){
+    var i = 0;
+    while (i < node.childNodes.length){
+      var ch = node.childNodes[i];
+      if (ch.nodeType === 3){ i++; continue; }
+      if (ch.nodeType !== 1){ ch.remove(); continue; }
+      if (drop[ch.tagName]){ ch.remove(); continue; }
+      /* Disallowed tag: unwrap — children move up to this spot and are
+      re-scanned in place (a <script> inside a <div> must not survive
+      the unwrap — the first draft only walked the snapshot). */
+      if (!allowed[ch.tagName]){ while (ch.firstChild) node.insertBefore(ch.firstChild, ch); ch.remove(); continue; }
+      if (ch.tagName === "A"){
+        var href = (ch.getAttribute("href") || "").trim();
+        if (!/^(https?:|mailto:|page:)/i.test(href)) ch.removeAttribute("href");
+        else if (!/^page:/i.test(href)){ ch.setAttribute("target", "_blank"); ch.setAttribute("rel", "noopener"); }
+      }
+      Array.prototype.slice.call(ch.attributes).forEach(function(a){ if (a.name !== "href" && a.name !== "target" && a.name !== "rel") ch.removeAttribute(a.name); });
+      walk(ch);
+      i++;
+    }
+  };
+  walk(div);
+  return div.innerHTML;
+}
+function customPageRowHtml(p){
+  p = p || {};
+  const slug = escAttr(p.slug || "");
+  const link = slug ? ("index.html?store=" + encodeURIComponent(STORE_SLUG || "shopnest") + "&page=" + encodeURIComponent(slug)) : "";
+  return `<div class="cnt-row" data-custompage-row>
+    <label style="font-size:13px;color:var(--muted)">Page title</label>
+    <input data-f="title" type="text" value="${escAttr(p.title || "")}" placeholder="About Us">
+    <label style="font-size:13px;color:var(--muted)">Slug (link ka hissa — English, unique)</label>
+    <input data-f="slug" type="text" value="${slug}" placeholder="about-us"${slug ? ' data-touched="1"' : ""}>
+    <p data-page-link style="color:var(--muted);font-size:13px;margin:6px 0 0">${link ? ("Page ka link: <a href=\"" + escAttr(link) + "\" target=\"_blank\" rel=\"noopener\">" + escAttr(link) + "</a>") : "Slug likhte hi page ka link yahan dikhega."}</p>
+    <label style="font-size:13px;color:var(--muted)">Page text (rich text)</label>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin:4px 0">
+      <button class="btn small" type="button" data-cp-bold><b>B</b></button>
+      <button class="btn small" type="button" data-cp-italic><i>I</i></button>
+      <input type="url" data-cp-linkurl placeholder="https://... ya page:slug" style="flex:1;min-width:140px">
+      <button class="btn small" type="button" data-cp-link>🔗 Link</button>
+      <button class="btn small" type="button" data-cp-list>• List</button>
+    </div>
+    <textarea data-f="body" rows="5" maxlength="20000" placeholder="Page ka text likhein...">${escAttr(p.body || "")}</textarea>
+    <div data-cp-preview style="border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-top:6px;font-size:14px;line-height:1.7;"></div>
+    <label style="font-size:13px;color:var(--muted)">SEO title (khaali ho to page title)</label>
+    <input data-f="seoTitle" type="text" value="${escAttr(p.seoTitle || "")}" placeholder="About Us — Store Name">
+    <label class="checkline"><input type="checkbox" data-f="showInHeader"${p.showInHeader ? " checked" : ""}> Header menu mein dikhayein</label>
+    <label class="checkline"><input type="checkbox" data-f="showInFooter"${p.showInFooter ? " checked" : ""}> Footer menu mein dikhayein</label>
+    <div class="cnt-row-actions"><button class="btn small" type="button" data-cnt-up>↑ Upar</button><button class="btn small" type="button" data-cnt-down>↓ Neeche</button><button class="btn small danger" type="button" data-cnt-del>Delete</button></div></div>`;
+}
+function cpWrap(ta, open, close){
+  if (!ta) return;
+  const s = (ta.selectionStart === null ? ta.value.length : ta.selectionStart);
+  const e = (ta.selectionEnd === null ? ta.value.length : ta.selectionEnd);
+  const sel = ta.value.slice(s, e);
+  if (sel) ta.setRangeText(open + sel + close, s, e, "end");
+  else { ta.setRangeText(open + close, s, e, "end"); ta.setSelectionRange(s + open.length, s + open.length); }
+  ta.focus();
+  ta.dispatchEvent(new Event("input", { bubbles: true }));
+}
+function cpList(ta){
+  if (!ta) return;
+  const s = (ta.selectionStart === null ? 0 : ta.selectionStart);
+  const e = (ta.selectionEnd === null ? ta.value.length : ta.selectionEnd);
+  const sel = ta.value.slice(s, e) || ta.value;
+  const items = sel.split(/\n/).map(x => x.trim()).filter(Boolean);
+  if (!items.length) return;
+  const html = "<ul>\n" + items.map(x => "<li>" + x + "</li>").join("\n") + "\n</ul>";
+  if (ta.value.slice(s, e)) ta.setRangeText(html, s, e, "end");
+  else ta.value = html;
+  ta.focus();
+  ta.dispatchEvent(new Event("input", { bubbles: true }));
+}
+function cpUpdateRow(row){
+  if (!row) return;
+  const titleEl = row.querySelector('[data-f="title"]');
+  const slugEl = row.querySelector('[data-f="slug"]');
+  const bodyEl = row.querySelector('[data-f="body"]');
+  const linkEl = row.querySelector("[data-page-link]");
+  const prevEl = row.querySelector("[data-cp-preview]");
+  if (slugEl && titleEl && !slugEl.dataset.touched){
+    const auto = slugifyPageTitle(titleEl.value);
+    if (auto) slugEl.value = auto;
+  }
+  if (linkEl && slugEl){
+    const slug = slugifyPageTitle(slugEl.value);
+    const href = "index.html?store=" + encodeURIComponent(STORE_SLUG || "shopnest") + "&page=" + encodeURIComponent(slug);
+    linkEl.innerHTML = slug ? ("Page ka link: <a href=\"" + escAttr(href) + "\" target=\"_blank\" rel=\"noopener\">" + escAttr(href) + "</a>") : "Slug likhte hi page ka link yahan dikhega.";
+  }
+  if (prevEl && bodyEl) prevEl.innerHTML = sanitizePageHtmlAdmin(bodyEl.value);
+}
+function bindCustomPageRows(wrap){
+  if (!wrap) return;
+  wrap.querySelectorAll("[data-custompage-row]").forEach(row => {
+    row.querySelector("[data-cnt-up]").onclick = () => { const p = row.previousElementSibling; if (p) wrap.insertBefore(row, p); };
+    row.querySelector("[data-cnt-down]").onclick = () => { const n = row.nextElementSibling; if (n) wrap.insertBefore(n, row); };
+    row.querySelector("[data-cnt-del]").onclick = () => row.remove();
+    const titleEl = row.querySelector('[data-f="title"]');
+    const slugEl = row.querySelector('[data-f="slug"]');
+    const bodyEl = row.querySelector('[data-f="body"]');
+    if (titleEl) titleEl.oninput = () => cpUpdateRow(row);
+    if (slugEl) slugEl.oninput = () => { slugEl.dataset.touched = "1"; cpUpdateRow(row); };
+    if (bodyEl) bodyEl.oninput = () => cpUpdateRow(row);
+    const boldBtn = row.querySelector("[data-cp-bold]");
+    if (boldBtn) boldBtn.onclick = () => cpWrap(bodyEl, "<b>", "</b>");
+    const itBtn = row.querySelector("[data-cp-italic]");
+    if (itBtn) itBtn.onclick = () => cpWrap(bodyEl, "<i>", "</i>");
+    const linkBtn = row.querySelector("[data-cp-link]");
+    if (linkBtn) linkBtn.onclick = () => {
+      const urlInp = row.querySelector("[data-cp-linkurl]");
+      const url = urlInp ? urlInp.value.trim() : "";
+      if (!/^(https?:|mailto:|page:)/i.test(url)){ toast("Link ke liye https://... ya page:slug likhein"); return; }
+      cpWrap(bodyEl, '<a href="' + url.replace(/"/g, "") + '">', "</a>");
+    };
+    const listBtn = row.querySelector("[data-cp-list]");
+    if (listBtn) listBtn.onclick = () => cpList(bodyEl);
+    cpUpdateRow(row);
+  });
+}
+function renderCustomPages(rows){
+  const wrap = document.getElementById("cntCustomPagesWrap");
+  if (!wrap) return;
+  wrap.innerHTML = (rows || []).map(p => customPageRowHtml(p)).join("");
+  bindCustomPageRows(wrap);
+}
+function addCustomPageRow(){
+  const wrap = document.getElementById("cntCustomPagesWrap");
+  if (!wrap) return;
+  wrap.insertAdjacentHTML("beforeend", customPageRowHtml({}));
+  bindCustomPageRows(wrap);
+}
+function readCustomPages(){
+  const wrap = document.getElementById("cntCustomPagesWrap");
+  if (!wrap) return [];
+  const seen = {};
+  return [...wrap.querySelectorAll("[data-custompage-row]")].map((row, i) => {
+    const val = k => { const el = row.querySelector(`[data-f="${k}"]`); return el ? el.value.trim() : ""; };
+    const chk = k => { const el = row.querySelector(`[data-f="${k}"]`); return !!(el && el.checked); };
+    let slug = slugifyPageTitle(val("slug") || val("title"));
+    if (!slug) slug = "page-" + (i + 1);
+    if (seen[slug]){ let n = 2; while (seen[slug + "-" + n]) n++; slug = slug + "-" + n; }
+    seen[slug] = true;
+    return { slug, title: val("title"), body: val("body").slice(0, CUSTOM_PAGE_BODY_MAX), seoTitle: val("seoTitle"), showInHeader: chk("showInHeader"), showInFooter: chk("showInFooter") };
+  }).filter(p => p.title || p.body).slice(0, CUSTOM_PAGE_MAX);
+}
+function fillContent(s){
+  const g = id => document.getElementById(id);
+  if (g("cntAboutHeading")) g("cntAboutHeading").value = s.about_heading || "";
+  if (g("cntAboutText")) g("cntAboutText").value = s.about_text || "";
+  if (g("cntFooterText")) g("cntFooterText").value = s.footer_text || "";
+  renderCntList("cntHowWrap", s.howSteps || [], HOW_FIELDS);
+  renderCntList("cntFaqWrap", s.faqs || [], FAQ_FIELDS);
+  renderCntList("cntReviewsWrap", s.reviews || [], REVIEW_FIELDS);
+  renderCntList("cntBudgetWrap", s.budgetTiles || [], BUDGET_FIELDS);
+  renderCntList("cntTrustWrap", s.trustItems || [], TRUST_FIELDS); /* V3.6: Instagram + blog (checkboxes: stored false ho to uncheck). */ if (g("cntInstaHandle")) g("cntInstaHandle").value = s.instaHandle || ""; if (g("cntShowReels")) g("cntShowReels").checked = s.showReels !== false; if (g("cntShowBlog")) g("cntShowBlog").checked = s.showBlog !== false; /* V3.9: fashion toggles + section/PDP text. */ if (g("cntShowSizes")) g("cntShowSizes").checked = s.showSizes !== false; if (g("cntShowColors")) g("cntShowColors").checked = s.showColors !== false; if (g("cntShowDisclaimer")) g("cntShowDisclaimer").checked = s.showDisclaimer !== false; SECTION_TEXT_KEYS_ADMIN.forEach(k => { if (g("cntSec_" + k + "_eyebrow")) g("cntSec_" + k + "_eyebrow").value = (s.sectionText && s.sectionText[k] && s.sectionText[k].eyebrow) || ""; if (g("cntSec_" + k + "_title")) g("cntSec_" + k + "_title").value = (s.sectionText && s.sectionText[k] && s.sectionText[k].title) || "";}); if (g("cntPdpDetails")) g("cntPdpDetails").value = (s.pdpText && s.pdpText.details) || ""; if (g("cntPdpRelated")) g("cntPdpRelated").value = (s.pdpText && s.pdpText.related) || ""; if (g("cntPdpDelivery")) g("cntPdpDelivery").value = (s.pdpText && s.pdpText.delivery) || ""; /* V3.10: Luxury tiles/tabs/banner. */ renderCntList("cntLuxTilesWrap", s.luxuryTiles || [], LUX_TILE_FIELDS); renderCntList("cntLuxTabsWrap", s.luxuryTabs || [], LUX_TAB_FIELDS); /* V3.11: Ready To Wear tabs + Editorial slider banners. */ renderCntList("cntLuxRtwTabsWrap", s.luxuryRtwTabs || [], LUX_TAB_FIELDS); renderCntList("cntLuxBannersWrap", s.luxuryBanners || [], LUX_BANNER_FIELDS); renderCntList("cntCollPagesWrap", s.collectionPages || [], COLL_PAGE_FIELDS); renderCustomPages(s.customPages || []); renderCntList("cntReelsWrap", s.instaReels || [], REEL_FIELDS); renderCntList("cntBlogWrap", s.blogPosts || [], BLOG_FIELDS);
+  contentFilled = true;
+}
+function addCntRow(wrapId, fields, rowClass){
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  wrap.insertAdjacentHTML("beforeend", cntRowHtml(fields, {}, rowClass, wrapId));
+  bindCntRows(wrap);
+}
+$("#addCntHowBtn").onclick = () => addCntRow("cntHowWrap", HOW_FIELDS);
+$("#addCntFaqBtn").onclick = () => addCntRow("cntFaqWrap", FAQ_FIELDS);
+$("#addCntReviewsBtn").onclick = () => addCntRow("cntReviewsWrap", REVIEW_FIELDS);
+$("#addCntBudgetBtn").onclick = () => addCntRow("cntBudgetWrap", BUDGET_FIELDS);
+$("#addCntTrustBtn").onclick = () => addCntRow("cntTrustWrap", TRUST_FIELDS); $("#addCntReelsBtn").onclick = () => addCntRow("cntReelsWrap", REEL_FIELDS); $("#addCntBlogBtn").onclick = () => addCntRow("cntBlogWrap", BLOG_FIELDS); document.getElementById("addCntLuxTilesBtn").onclick = () => addCntRow("cntLuxTilesWrap", LUX_TILE_FIELDS); document.getElementById("addCntLuxTabsBtn").onclick = () => addCntRow("cntLuxTabsWrap", LUX_TAB_FIELDS); $("#addCntLuxRtwTabsBtn").onclick = () => addCntRow("cntLuxRtwTabsWrap", LUX_TAB_FIELDS); $("#addCntLuxBannersBtn").onclick = () => addCntRow("cntLuxBannersWrap", LUX_BANNER_FIELDS); document.getElementById("addCntCollPagesBtn").onclick = () => addCntRow("cntCollPagesWrap", COLL_PAGE_FIELDS); /* V5 Phase 4: null-guard — HTML box (commit 3) se pehle JS aaye to admin na toote. */ const _acpb = document.getElementById("addCntCustomPagesBtn"); if (_acpb) _acpb.onclick = () => addCustomPageRow();
+$("#addSpEntryBtn").onclick = () => addCntRow("spEntriesWrap", SP_FIELDS, "sp-row cnt-row");
+function renderSpEntries(entries){
+  renderCntList("spEntriesWrap", entries || [], SP_FIELDS, "sp-row cnt-row");
+}
+function readSpEntries(){
+  return readCntList("spEntriesWrap", SP_FIELDS);
+}
+
+/* ---------- Settings SAVE (shared) ----------
+   Settings / Homepage / Appearance teeno tabs ki save EK hi routine hai:
+   saare tabs ke DOM se values parh kar EK settings.data upsert hota hai,
+   taa ke kisi ek tab ki save doosre tab ki values ko wipe na kare.
+   Upar wala topbar Save button bhi yehi routine chalata hai. */
+/* ---------- (A) Luxury auto-seed: theme-apply par 7 categories ----------    Jab admin Appearance se Luxury theme save karta hai aur store ka Luxury    content bilkul khaali hai (tiles/tabs/banners/reels — sab khaali), to 7    Luxury categories auto-ban jati hain jo store mein pehle se na hon.    VALUES seed nahi hoti (na shopnest ki, na images/handle) — sirf structure.    Kabhi overwrite nahi: koi bhi Luxury list non-empty ho to kuch nahi hota.    Seed condition "values empty" hai, "keys absent" nahi — persistAllSettings    har Save par poora merged object likhta hai, is liye khaali keys DB mein    maujood hoti hain. */ const LUXURY_CATEGORIES = ["Luxury", "Daily Wear", "Embroidered", "Pret", "Luxury Pret", "Daily Wear Pret", "Embroidered Pret"]; async function seedLuxuryCategories(savedData){   const empty = v => !Array.isArray(v) || v.length === 0;   try {     if (!savedData || savedData.theme !== "luxury") return { created: 0, skipped: true };     if (!empty(savedData.luxuryTiles) || !empty(savedData.luxuryTabs) || !empty(savedData.luxuryRtwTabs) || !empty(savedData.luxuryBanners) || !empty(savedData.instaReels)) return { created: 0, skipped: true };     const { data: existing, error: e0 } = await sb.from("categories").select("name, sort").eq("store_id", STORE_ID);     if (e0) throw e0;     const have = new Set((existing || []).map(c => String(c.name || "").trim().toLowerCase()));     let maxSort = (existing || []).reduce((m, c) => Math.max(m, Number(c.sort) || 0), 0);     const missing = LUXURY_CATEGORIES.filter(n => !have.has(n.toLowerCase()));     if (!missing.length) return { created: 0, skipped: false };     const rows = missing.map(n => { maxSort += 1; return { store_id: STORE_ID, name: n, image: "", visible: true, sort: maxSort }; });     const { error } = await sb.from("categories").insert(rows);     if (error) throw error;     if (typeof loadCategories === "function") loadCategories();     showToast("👑 Luxury theme: " + rows.length + " categories ban gayin.", "ok");     return { created: rows.length, skipped: false };   } catch (e) {     showToast("Luxury categories seed fail: " + (e && e.message ? e.message : e), "err");     return { created: 0, error: e };   } } /* ================= V5 Phase 5: Meta tab (Pixel + CAPI + custom code) =================
+   Token kabhi settings.data mein nahi jata — sirf store_meta_secrets (Part B).
+   fillMeta: token field hamesha khali rehta hai; placeholder mein •••• + last4 dikhta hai. */
+function fillMeta(s){
+  const pid = $("#metaPixelId"); if (!pid) return; /* Panel abhi DOM mein nahi. */
+  const m = (s && s.meta) || {};
+  const cc = (s && s.customCode) || {};
+  pid.value = String(m.pixelId || "");
+  const en = $("#metaCapiEnabled"); if (en) en.checked = m.capiEnabled === true;
+  const tec = $("#metaTestEventCode"); if (tec) tec.value = String(m.testEventCode || "");
+  const tok = $("#metaCapiToken"); if (tok){ tok.value = ""; tok.placeholder = m.hasCapiToken ? ("••••••••" + String(m.capiTokenLast4 || "")) : "Meta Events Manager se token paste karein"; }
+  const del = $("#metaCapiDelete"); if (del) del.checked = false;
+  const st = $("#metaTokenState"); if (st) st.textContent = m.hasCapiToken ? ("Token save hai ••••" + String(m.capiTokenLast4 || "") + " — naya token paste karke Save dabayein, ya delete tick karke Save karein.") : "Koi CAPI token save nahi — Pixel akela bhi kaam karega.";
+  const ch = $("#metaCodeHead"); if (ch) ch.value = String(cc.head || "");
+  const cb = $("#metaCodeBody"); if (cb) cb.value = String(cc.body || "");
+  metaRenderLog();
+}
+function readMeta(){
+  const pidEl = $("#metaPixelId");
+  if (!pidEl) return null; /* Meta panel DOM mein nahi (HTML commit abhi nahi aaya) — SETTINGS_STATE ki values rehti hain. */
+  const prev = (SETTINGS_STATE && SETTINGS_STATE.meta) || {};
+  const tokEl = $("#metaCapiToken");
+  const delEl = $("#metaCapiDelete");
+  let hasTok = prev.hasCapiToken === true, last4 = String(prev.capiTokenLast4 || "");
+  const newTok = tokEl ? String(tokEl.value || "").trim() : "";
+  if (delEl && delEl.checked){ hasTok = false; last4 = ""; }
+  else if (newTok){ hasTok = true; last4 = newTok.slice(-4); }
+  return { pixelId: String(pidEl.value || "").replace(/[^0-9]/g, "").slice(0, 20), capiEnabled: !!($("#metaCapiEnabled") && $("#metaCapiEnabled").checked), testEventCode: String((($("#metaTestEventCode") || {}).value) || "").slice(0, 64), hasCapiToken: hasTok, capiTokenLast4: last4 };
+}
+function readCustomCode(){
+  return { head: String((($("#metaCodeHead") || {}).value) || "").slice(0, 50000), body: String((($("#metaCodeBody") || {}).value) || "").slice(0, 50000) };
+}
+function metaRenderLog(){
+  const box = $("#metaEventLog"); if (!box) return;
+  let arr = [];
+  try { arr = JSON.parse(localStorage.getItem("sn_meta_log_v1") || "[]"); if (!Array.isArray(arr)) arr = []; } catch (e){ arr = []; }
+  if (!arr.length){ box.textContent = "Abhi koi event log nahi — test button dabayein ya store par koi action karein."; return; }
+  box.innerHTML = arr.map(e => "<div>" + esc(e.t || "") + " — " + esc(e.kind || "") + " " + esc(e.name || "") + " — " + (e.ok ? "OK" : "FAIL") + " — " + esc(e.detail || "") + "</div>").join("");
+}
+function metaTestPixel(){
+  const pid = String((($("#metaPixelId") || {}).value) || "").replace(/[^0-9]/g, "");
+  const msg = $("#metaMsg");
+  if (!pid){ if (msg){ msg.textContent = "Pehle Pixel ID likhein, phir test karein."; msg.className = "msg err"; } return; }
+  try {
+    if (typeof window.fbq === "function"){ window.fbq("track", "PageView", {}, { eventID: "test_" + Date.now().toString(36) }); }
+    try { const arr = JSON.parse(localStorage.getItem("sn_meta_log_v1") || "[]"); arr.unshift({ t: new Date().toISOString(), kind: "test", name: "PageView", ok: true, detail: "admin test — Events Manager → Test Events mein dekhein" }); localStorage.setItem("sn_meta_log_v1", JSON.stringify(arr.slice(0, 20))); } catch (e){}
+    metaRenderLog();
+    if (msg){ msg.textContent = "Test PageView bhej diya — Meta Events Manager → Test Events mein 1–2 minute mein nazar aana chahiye."; msg.className = "msg ok"; }
+  } catch (e){ if (msg){ msg.textContent = "Test nahi bhej saka: " + (e && e.message ? e.message : ""); msg.className = "msg err"; } }
+}
+function bindMetaTab(){
+  const tb = $("#metaTestPixelBtn"); if (tb) tb.onclick = metaTestPixel;
+  const cl = $("#metaClearLogBtn"); if (cl) cl.onclick = () => { try { localStorage.removeItem("sn_meta_log_v1"); } catch (e){} metaRenderLog(); };
+  const tg = $("#metaTokenToggle"); if (tg) tg.onclick = () => { const tok = $("#metaCapiToken"); if (!tok) return; tok.type = tok.type === "password" ? "text" : "password"; tg.textContent = tok.type === "password" ? "👁 dikhayein" : "🙈 chhupayein"; };
+}
+async function persistAllSettings(){
+  const saveBtns = [...document.querySelectorAll(".js-save, #globalSaveBtn")];
+  const savedLabels = saveBtns.map(b => b.innerHTML);
+  saveBtns.forEach(b => { b.disabled = true; b.textContent = "Saving…"; });
+  const msgEls = { settings: $("#settingsMsg"), homepage: $("#homepageMsg"), appearance: $("#appearanceMsg"), style: $("#styleMsg"), content: $("#contentMsg"), sections: $("#sectionsMsg"), meta: $("#metaMsg") }; /* V5 Phase 5: metaMsg. */
+  Object.values(msgEls).forEach(m => { if (m){ m.textContent = ""; m.className = "msg"; } });
+  const topMsg = $("#topSaveMsg");
+  if (topMsg) topMsg.textContent = "";
+  try {
+    const data = JSON.parse(JSON.stringify(SETTINGS_STATE || mergeAdminSettings(null)));
+    /* Hero slides (pending file uploads samet) */
+    const hero = await collectHeroSlides(); /* V5 Phase 3: Content-list uploads — hero ke baad, Content reads se pehle. */ await collectCntUploads();
+    heroState = JSON.parse(JSON.stringify(hero));
+    data.hero = hero;
+    /* Settings tab ke fields */
+    data.store_name = $("#setStoreName").value.trim() || ADMIN_DEFAULT_SETTINGS.store_name;
+    data.announcements = [1, 2, 3, 4].map(i => document.getElementById("setAnn" + i).value.trim());
+    data.promo = [1, 2].map(n => ({
+      kicker: document.getElementById(`setP${n}Kicker`).value.trim(),
+      heading: document.getElementById(`setP${n}Heading`).value.trim(),
+      text: document.getElementById(`setP${n}Text`).value.trim(),
+      category: document.getElementById(`setP${n}Category`).value.trim()
+    }));
+    /* V3.3: Content tab khula ho to wahi about fields jeet-ti hain, warna Settings tab. */
+    data.about_heading = ((contentFilled && $("#cntAboutHeading")) ? $("#cntAboutHeading").value.trim() : $("#setAboutHeading").value.trim()) || ADMIN_DEFAULT_SETTINGS.about_heading;
+    data.about_text = ((contentFilled && $("#cntAboutText")) ? $("#cntAboutText").value.trim() : $("#setAboutText").value.trim()) || ADMIN_DEFAULT_SETTINGS.about_text;
+    data.whatsapp_number = $("#setWhatsapp").value.trim();
+    /* V3 Part B: SEO */
+    data.seo_title = $("#setSeoTitle") ? $("#setSeoTitle").value.trim() : "";
+    data.seo_description = $("#setSeoDesc") ? $("#setSeoDesc").value.trim() : "";
+    const secToggles = {};
+    document.querySelectorAll("[data-sec]").forEach(cb => { secToggles[cb.dataset.sec] = cb.checked; });
+    data.sections = secToggles;
+    const policies = {};
+    document.querySelectorAll("[data-pol]").forEach(ta => { policies[ta.dataset.pol] = ta.value; });
+    data.policies = policies;
+    /* Profile logo (Settings tab) — file lagi ho to upload */
+    let profLogo = $("#profLogo").value.trim();
+    const profLogoFile = $("#profLogoFile").files[0];
+    if (profLogoFile){
+      setUploadMsg($("#profLogoMsg"), "Logo upload ho raha hai…");
+      profLogo = await uploadImage(profLogoFile, "profile");
+      $("#profLogo").value = profLogo;
+      $("#profLogoFile").value = "";
+      setUploadMsg($("#profLogoMsg"), "✅ Logo upload complete.", "ok");
+    }
+    data.profile = {
+      logo_url: profLogo,
+      email: $("#profEmail").value.trim(),
+      phone: $("#profPhone").value.trim(),
+      address: $("#profAddress").value.trim()
+    };
+    /* Appearance: logo (apni file lagi ho to upload) — logo_url hi asal key hai;
+       profile.logo_url ko bhi sync rakhte hain taa ke mojooda storefront logo dikhaye. */
+    let appLogo = $("#appLogoUrl").value.trim();
+    const appLogoFile = $("#appLogoFile").files[0];
+    if (appLogoFile){
+      setUploadMsg($("#appLogoMsg"), "Logo upload ho raha hai…");
+      appLogo = await uploadImage(appLogoFile, "profile");
+      $("#appLogoUrl").value = appLogo;
+      $("#appLogoFile").value = "";
+      updateLogoPreview(appLogo);
+      setUploadMsg($("#appLogoMsg"), "✅ Logo upload complete.", "ok");
+    }
+    data.logo_url = appLogo || profLogo;
+    if (data.logo_url){
+      data.profile.logo_url = data.logo_url;
+      if ($("#profLogo").value.trim() !== data.logo_url) $("#profLogo").value = data.logo_url;
+    }
+    data.font_family = fontObjFromName($("#appFont").value);
+    /* V3 theme: sirf known key save ho, warna khaali (general fallback) */
+    data.theme = (window.SHOPNEST_THEME_KNOWN && window.SHOPNEST_THEME_KNOWN(ADMIN_THEME_SELECTED)) ? ADMIN_THEME_SELECTED : "";
+    data.theme_color = $("#appThemeColor").value || "";
+    data.socials = {
+      facebook: $("#socFacebook").value.trim(),
+      instagram: $("#socInstagram").value.trim(),
+      tiktok: $("#socTiktok").value.trim(),
+      youtube: $("#socYoutube").value.trim(),
+      x: $("#socX").value.trim(),
+      whatsapp: $("#socWhatsapp").value.trim()
+    };
+    data.menu_links = readLinkRows($("#menuLinksWrap"));
+    data.footer_links = readLinkRows($("#footerLinksWrap"));
+    data.footer_text = (contentFilled && $("#cntFooterText")) ? $("#cntFooterText").value : $("#footerText").value;
+    /* Homepage builder */
+    if (homepageFilled){
+      syncHomepageFromDom();
+      data.sections_order = HP_ORDER.map(e => ({ key: e.key, visible: e.visible !== false }));
+      data.custom_sections = Object.entries(HP_CUSTOM).map(([id, c]) => ({ id, heading: c.heading, text: c.text, img: c.img, btn_label: c.btn_label, btn_link: c.btn_link }));
+      /* Bridge: jo storefront abhi settings.sections parhta hai, us ke liye
+         builder ki visibility legacy toggles mein bhi likh dein. */
+      HP_ORDER.forEach(e => { const lk = LEGACY_SEC[e.key]; if (lk) data.sections[lk] = e.visible !== false; });
+    }
+    /* Custom fields */
+    data.checkout_fields = readFieldRows($("#checkoutFieldsWrap"));
+    data.product_fields = readFieldRows($("#productFieldsWrap"));
+    /* V3.2 Style Editor — shared save ka hissa; baaki tabs ki tarah
+       SETTINGS_STATE clone se shuru hone ki wajah se koi tab wipe nahi hota. */
+    data.style = readStyle();
+    data.sectionStyles = readSectionStyles();
+    /* V5 Phase 5: Meta + custom code — sirf jab Meta panel DOM mein ho (HTML commit pehle aaya). */
+    const metaRead = readMeta();
+    if (metaRead){
+      data.meta = metaRead;
+      data.customCode = readCustomCode();
+/* CAPI token — server-side save (Part B2 Edge Function "meta-token-save").
+         FIX 2026-11-04 (UPSERT/UPDATE bug): store_meta_secrets par koi SELECT policy
+         nahi (token kabhi client se parha na jaye — by design), is liye client-side
+         UPSERT/DELETE purani row ko dekh hi nahi sakta aur 403 deta hai (plain INSERT
+         chalta hai, UPDATE/DELETE nahi — test se prove). Is liye token save ab Edge
+         Function se hota hai — function caller ka JWT verify karke (owner/admin/
+         platform admin) aur service_role se upsert/delete karta hai (RLS bypass). */
+      const tokEl = $("#metaCapiToken");
+      const delEl = $("#metaCapiDelete");
+      const newTok = tokEl ? String(tokEl.value || "").trim() : "";
+      if ((delEl && delEl.checked) || newTok){
+        const { data: sessData } = await sb.auth.getSession();
+        const accessToken = sessData && sessData.session ? sessData.session.access_token : "";
+        if (!accessToken) throw new Error("CAPI token save nahi ho saka — admin session nahi mili, dobara sign in karein.");
+        const tokResp = await fetch(SUPABASE_URL + "/functions/v1/meta-token-save", { method: "POST", headers: { apikey: SUPABASE_ANON_KEY, Authorization: "Bearer " + accessToken, "Content-Type": "application/json" }, body: JSON.stringify({ store_id: STORE_ID, capi_token: newTok, delete: !!(delEl && delEl.checked) }) });
+        let tokJson = {};
+      try { tokJson = await tokResp.json(); } catch (e) {}
+          if (!tokResp.ok || !tokJson.ok) throw new Error("CAPI token save nahi ho saka — " + (tokJson.error || ("HTTP " + tokResp.status)));
+      }
+      if (tokEl) tokEl.value = "";
+      if (delEl) delEl.checked = false;
+    }
+    /* V3.3 Content — sirf jab Content tab bhara gaya ho; warna SETTINGS_STATE
+       ki values (stored ya defaults) waisi ki waisi rehti hain. */
+    if (contentFilled){
+      data.howSteps = readCntList("cntHowWrap", HOW_FIELDS);
+      data.faqs = readCntList("cntFaqWrap", FAQ_FIELDS);
+      data.reviews = readCntList("cntReviewsWrap", REVIEW_FIELDS).map(r => {
+        const v = parseFloat(r.rating);
+        return { ...r, rating: Number.isFinite(v) ? Math.min(5, Math.max(1, v)) : 5 };
+      });
+      data.budgetTiles = readCntList("cntBudgetWrap", BUDGET_FIELDS);
+      data.trustItems = readCntList("cntTrustWrap", TRUST_FIELDS); /* V3.6: Instagram + blog (Content tab bhara ho to wahi jeet-ta hai). */ data.instaHandle = (document.getElementById("cntInstaHandle") ? document.getElementById("cntInstaHandle").value.trim() : ""); data.showReels = document.getElementById("cntShowReels") ? document.getElementById("cntShowReels").checked : true; data.showBlog = document.getElementById("cntShowBlog") ? document.getElementById("cntShowBlog").checked : true; /* V3.9: fashion toggles + section/PDP text. */ data.showSizes = document.getElementById("cntShowSizes") ? document.getElementById("cntShowSizes").checked : true; data.showColors = document.getElementById("cntShowColors") ? document.getElementById("cntShowColors").checked : true; data.showDisclaimer = document.getElementById("cntShowDisclaimer") ? document.getElementById("cntShowDisclaimer").checked : true; if (contentTextDirty){ data.sectionText = {}; SECTION_TEXT_KEYS_ADMIN.forEach(k => { const eb = document.getElementById("cntSec_" + k + "_eyebrow"); const ti = document.getElementById("cntSec_" + k + "_title"); const e = eb ? eb.value.trim() : "", t = ti ? ti.value.trim() : ""; if (e || t) data.sectionText[k] = { eyebrow: e, title: t };}); } data.pdpText = { details: document.getElementById("cntPdpDetails") ? document.getElementById("cntPdpDetails").value.trim() : "", related: document.getElementById("cntPdpRelated") ? document.getElementById("cntPdpRelated").value.trim() : "", delivery: document.getElementById("cntPdpDelivery") ? document.getElementById("cntPdpDelivery").value.trim() : "" }; /* V3.10: Luxury tiles/tabs/banner. */ data.luxuryTiles = readCntList("cntLuxTilesWrap", LUX_TILE_FIELDS); data.luxuryTabs = readCntList("cntLuxTabsWrap", LUX_TAB_FIELDS); /* V3.11: Ready To Wear tabs + Editorial slider banners. */ data.luxuryRtwTabs = readCntList("cntLuxRtwTabsWrap", LUX_TAB_FIELDS); data.luxuryBanners = readCntList("cntLuxBannersWrap", LUX_BANNER_FIELDS); data.collectionPages = readCntList("cntCollPagesWrap", COLL_PAGE_FIELDS); /* V5 Phase 4: wrap na ho to customPages bilkul nahi likhte (purani values mehfooz). */ if (document.getElementById("cntCustomPagesWrap")) data.customPages = readCustomPages(); data.instaReels = readCntList("cntReelsWrap", REEL_FIELDS); data.blogPosts = readCntList("cntBlogWrap", BLOG_FIELDS);
+    }
+    if (sectionsTextDirty){ data.sectionText = readSectionsText();}
+ /* Per-store settings: upsert store_id par hota hai (platform migration
+       mein settings.store_id par unique index hai; id sequence se auto
+       aata hai nayi row par). */
+    const { error } = await sb.from("settings").upsert({ store_id: STORE_ID, data }, { onConflict: "store_id" });
+    if (error) throw error;
+    SETTINGS_STATE = data; /* (A) Luxury auto-seed — theme save ho gaya, ab categories (agar khaali hon). Seed apni ghalti khud pakarta hai (toast) — save is se fail nahi hota. */ await seedLuxuryCategories(data);
+    renderHeroEditor();
+/* V4 Phase 2: theme badla ho to Content/builder/Style dobara dikhayein. */
+applyThemeVisibility();
+    const okText = "✅ Save ho gaya — store reload karke changes dekhein.";
+    Object.values(msgEls).forEach(m => { if (m){ m.textContent = okText; m.className = "msg ok"; } });
+    showToast("✅ Save ho gaya — store reload karke changes dekhein.", "ok");
+    if (topMsg){ topMsg.textContent = "✅ Save ho gaya"; setTimeout(() => { topMsg.textContent = ""; }, 3500); }
+  } catch (e) {
+    Object.values(msgEls).forEach(m => { if (m){ m.textContent = "Save fail: " + e.message; m.className = "msg err"; } });
+    if (topMsg) topMsg.textContent = "";
+    showToast("Save fail: " + e.message, "err");
+  } finally {
+    saveBtns.forEach((b, i) => { b.disabled = false; b.innerHTML = savedLabels[i]; });
+  }
+}
+/* ---------- V3 Part B: CSV export + Low-stock alerts + Domain ---------- */
+function downloadCSV(filename, rows){
+  const escCell = v => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const csv = rows.map(r => r.map(escCell).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8" }));
+  a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+function csvDate(){
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+const _expO = $("#exportOrdersBtn");
+if (_expO) _expO.onclick = () => {
+  const rows = [["Order ID", "Date", "Customer", "Phone", "City", "Address", "Items", "Total", "Status"]];
+  ORDERS_CACHE.forEach(o => {
+    const lines = orderLines(o);
+    rows.push([o.id, new Date(o.created_at).toLocaleString("en-PK"), o.customer_name || "", o.phone || "", o.city || "", o.address || "",
+      lines.map(lineLabelPlain).join("; "), o.total || 0, o.status || ""]);
+  });
+  downloadCSV(`orders-${STORE_SLUG || "store"}-${csvDate()}.csv`, rows);
+};
+const _expP = $("#exportProductsBtn");
+if (_expP) _expP.onclick = () => {
+  const rows = [["ID", "Name", "Category", "Price", "Old Price", "Stock", "Live", "Featured"]];
+  PRODUCTS_CACHE.forEach(pr => {
+    rows.push([pr.id, pr.name || "", pr.cat || "", pr.price || 0, pr.old || "", pr.stock || "", pr.active ? "yes" : "no", pr.featured ? "yes" : "no"]);
+  });
+  downloadCSV(`products-${STORE_SLUG || "store"}-${csvDate()}.csv`, rows);
+};
+/* ---------- CSV Import (products) ---------- */
+/* Quotes + commas wali CSV theek se parse karta hai. Header ho to columns
+   naam se pehchani jati hain (ID column ho to ignore hoti hai); header na
+   ho to export wali tartib maani jati hai. Import hamesha NAYE products
+   banata hai (purani ko overwrite nahi karta), hidden haalat mein taa ke
+   client pehle check karke phir live kare. */
+function parseCSV(text){
+  const rows = [];
+  let row = [], cur = "", inQ = false;
+  const s = String(text).replace(/^\uFEFF/, "");
+  for (let i = 0; i < s.length; i++){
+    const c = s[i];
+    if (inQ){
+      if (c === '"'){
+        if (s[i+1] === '"'){ cur += '"'; i++; }
+        else inQ = false;
+      } else cur += c;
+    } else if (c === '"'){ inQ = true; }
+    else if (c === ','){ row.push(cur); cur = ""; }
+    else if (c === '\n'){ row.push(cur); rows.push(row); row = []; cur = ""; }
+    else if (c !== '\r'){ cur += c; }
+  }
+  if (cur !== "" || row.length){ row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(v => String(v).trim() !== ""));
+}
+function csvColIdx(headers, names){
+  const h = headers.map(x => String(x).trim().toLowerCase());
+  for (const n of names){
+    const i = h.indexOf(n);
+    if (i >= 0) return i;
+  }
+  return -1;
+}
+const _impP = $("#importProductsFile");
+if (_impP) _impP.addEventListener("change", async () => {
+  const file = _impP.files && _impP.files[0];
+  _impP.value = "";
+  if (!file) return;
+  const msg = $("#importMsg");
+  const setMsg = (t, kind) => { if (msg){ msg.textContent = t; msg.style.color = kind === "err" ? "var(--red)" : "var(--muted)"; } };
+  try {
+    const rows = parseCSV(await file.text());
+    if (!rows.length){ setMsg("CSV khaali hai.", "err"); return; }
+    const first = rows[0].map(x => String(x).trim().toLowerCase());
+    const hasHeader = first.includes("name") || first.includes("product");
+    const dataRows = hasHeader ? rows.slice(1) : rows;
+    const idx = hasHeader ? {
+      name: csvColIdx(rows[0], ["name", "product"]),
+      cat: csvColIdx(rows[0], ["category", "cat"]),
+      price: csvColIdx(rows[0], ["price"]),
+      old: csvColIdx(rows[0], ["old price", "old"]),
+      stock: csvColIdx(rows[0], ["stock"]),
+      live: csvColIdx(rows[0], ["live", "active"]),
+      featured: csvColIdx(rows[0], ["featured"]),
+      img: csvColIdx(rows[0], ["image", "img", "image url"]),
+      gallery: csvColIdx(rows[0], ["gallery", "extra images"]),
+      desc: csvColIdx(rows[0], ["description", "desc"]),
+      rating: csvColIdx(rows[0], ["rating"]),
+      reviews: csvColIdx(rows[0], ["reviews"]),
+      fee: csvColIdx(rows[0], ["delivery fee", "delivery_fee"]),
+      disc: csvColIdx(rows[0], ["discount %", "discount", "discount_pct"]),
+    } : { name: 1, cat: 2, price: 3, old: 4, stock: 5, live: 6, featured: 7, img: -1, gallery: -1, desc: -1, rating: -1, reviews: -1, fee: -1, disc: -1 };
+    const get = (r, i) => (i >= 0 && r[i] != null ? String(r[i]).trim() : "");
+    const yes = v => ["yes", "true", "1", "y", "live", "show"].includes(v.toLowerCase());
+    const valid = [], bad = [];
+    dataRows.forEach((r, n) => {
+      const name = get(r, idx.name);
+      const price = parseFloat(get(r, idx.price));
+      if (!name || isNaN(price)){ bad.push(n + (hasHeader ? 2 : 1)); return; }
+      const stockRaw = get(r, idx.stock).toLowerCase();
+      valid.push({
+        store_id: STORE_ID,
+        name,
+        cat: get(r, idx.cat) || "General",
+        price: Math.max(0, Math.round(price)),
+        old: get(r, idx.old) ? Math.max(0, Math.round(parseFloat(get(r, idx.old)) || 0)) : null,
+        stock: (stockRaw === "out" || stockRaw === "out of stock") ? "out" : "in",
+        active: idx.live >= 0 ? yes(get(r, idx.live)) : false,
+        featured: idx.featured >= 0 ? yes(get(r, idx.featured)) : false,
+        img: get(r, idx.img),
+        gallery: get(r, idx.gallery) ? get(r, idx.gallery).split("|").map(s => s.trim()).filter(Boolean) : [],
+        desc: get(r, idx.desc),
+        rating: idx.rating >= 0 ? Math.min(5, Math.max(0, parseFloat(get(r, idx.rating)) || 4.5)) : 4.5,
+        reviews: idx.reviews >= 0 ? Math.max(0, parseInt(get(r, idx.reviews)) || 0) : 0,
+        delivery_fee: idx.fee >= 0 ? Math.max(0, parseInt(get(r, idx.fee)) || 0) : 0,
+        discount_pct: idx.disc >= 0 && get(r, idx.disc) !== "" ? Math.min(90, Math.max(0, Math.round(parseFloat(get(r, idx.disc)) || 0))) : null,
+      });
+    });
+    if (!valid.length){ setMsg(`Koi theek row nahi mili (${bad.length} rows mein naam/price ka masla).`, "err"); return; }
+    if (!confirm(`${valid.length} products import ho jayenge (naye products, hidden haalat mein — live karne se pehle check kar lein).${bad.length ? ` ${bad.length} rows chhoot jayengi (naam/price ghalat).` : ""} Jaari rakhein?`)) return;
+    setMsg("Import ho raha hai…");
+    const { error } = await sb.from("products").insert(valid);
+    if (error){ setMsg("Import fail: " + error.message, "err"); showToast("Import fail: " + error.message, "err"); return; }
+    setMsg(`✅ ${valid.length} products import ho gayin.${bad.length ? ` ${bad.length} rows chhoot gayin (rows: ${bad.slice(0, 10).join(", ")}).` : ""}`);
+    showToast(`✅ ${valid.length} products import ho gayin (hidden — live karne se pehle check kar lein).`, "ok");
+    loadProducts();
+  } catch (e) { setMsg("Import fail: " + e.message, "err"); showToast("Import fail: " + e.message, "err"); }
+});
+/* Low-stock: stock === 'out' wali products ki list — Products tab banner + Dashboard card. */
+function renderLowStock(){
+  const out = (PRODUCTS_CACHE || []).filter(pr => pr.stock === "out");
+  const banner = $("#lowStockBanner");
+  if (banner){
+    if (out.length){
+      banner.hidden = false;
+      banner.innerHTML = `<p class="msg err" style="margin:0">⚠️ <strong>${out.length} product(s) out of stock</strong> — ${out.map(pr => escapeHtml(pr.name || ("#" + pr.id))).join(", ")}</p>`;
+    } else { banner.hidden = true; banner.innerHTML = ""; }
+  }
+  const dash = $("#dashLowStock");
+  if (dash){
+    if (out.length){
+      dash.hidden = false;
+      dash.innerHTML = `<h3 style="margin-bottom:6px">⚠️ Low Stock Alert</h3><p class="msg err" style="margin:0"><strong>${out.length} product(s) out of stock:</strong> ${out.map(pr => escapeHtml(pr.name || ("#" + pr.id))).join(", ")}</p>`;
+    } else { dash.hidden = true; dash.innerHTML = ""; }
+  }
+}
+/* Domain section (Settings tab, admin+): current domain dikhao, RPC se save karo. */
+async function loadDomain(){
+  const cur = $("#domCurrent");
+  const inp = $("#domInput");
+  if (!cur || !inp) return;
+  try {
+    const { data, error } = await sb.from("stores").select("custom_domain,domain_status").eq("id", STORE_ID).single();
+    if (error) throw error;
+    const d = (data && data.custom_domain) || "";
+    const st = (data && data.domain_status) || "none";
+    cur.textContent = d ? `Current domain: ${d} — status: ${st}` : "Abhi koi domain connect nahi hai (status: none).";
+    inp.value = d;
+  } catch (e) {
+    cur.textContent = "Domain load nahi ho saka: " + e.message;
+  }
+}
+function validDomain(d){
+  return /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?(\.[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?)+$/.test(d);
+}
+async function saveDomain(clear){
+  const msg = $("#domMsg");
+  const inp = $("#domInput");
+  const domain = clear ? "" : inp.value.trim().toLowerCase();
+  if (!clear && !validDomain(domain)){
+    msg.textContent = "Domain ghalat hai — sirf aisa likhein: shop.example.com (https:// ya / ke baghair).";
+    msg.className = "msg err"; return;
+  }
+  msg.textContent = "Save ho raha hai…"; msg.className = "msg";
+  try {
+    /* set_store_domain RPC: sirf domain + status badalta hai, baaki store
+       fields ko chhoo nahi sakta — is liye team member bhi safe tareeqay
+       se apna domain save kar sakta hai. */
+    const { error } = await sb.rpc("set_store_domain", { p_store_id: STORE_ID, p_domain: domain, p_status: domain ? "pending" : "none" });
+    if (error) throw error;
+    msg.textContent = clear ? "✅ Domain hata diya gaya." : "✅ Domain save ho gaya — status 'pending'. DNS lagane ke baad Super Admin isay 'live' karega.";
+    msg.className = "msg ok";
+    showToast(clear ? "✅ Domain hata diya gaya." : "✅ Domain save ho gaya.", "ok");
+    loadDomain();
+  } catch (e) {
+    msg.textContent = "Domain save fail: " + e.message; msg.className = "msg err";
+    showToast("Domain save fail: " + e.message, "err");
+  }
+}
+const _domSave = $("#domSaveBtn");
+if (_domSave) _domSave.onclick = () => saveDomain(false);
+const _domClear = $("#domClearBtn");
+if (_domClear) _domClear.onclick = () => saveDomain(true);
+
+$("#saveSettingsBtn").onclick = persistAllSettings;
+$("#saveHomepageBtn").onclick = persistAllSettings;
+$("#saveAppearanceBtn").onclick = persistAllSettings;
+$("#saveStyleBtn").onclick = persistAllSettings;
+$("#saveContentBtn").onclick = persistAllSettings;
+$("#saveSectionsBtn").onclick = persistAllSettings;
+$("#saveMetaBtn").onclick = persistAllSettings; /* V5 Phase 5. */
+$("#globalSaveBtn").onclick = persistAllSettings;
+bindMetaTab(); /* V5 Phase 5: Meta tab buttons (null-guarded — panel na ho to bhi safe). */
+
+/* ---------- Tabs ---------- */
+const TAB_VIEWS = {
+  dashboard: ["tabDashboard", "dashboardPanel"],
+  orders: ["tabOrders", "ordersPanel"],
+  products: ["tabProducts", "productsPanel"],
+  categories: ["tabCategories", "categoriesPanel"],
+  coupons: ["tabCoupons", "couponsPanel"],
+  team: ["tabTeam", "teamPanel"],
+  homepage: ["tabHomepage", "homepagePanel"],
+  sections: ["tabSections", "sectionsPanel"],
+  appearance: ["tabAppearance", "appearancePanel"],
+  style: ["tabStyle", "stylePanel"],
+  content: ["tabContent", "contentPanel"],
+  settings: ["tabSettings", "settingsPanel"],
+  meta: ["tabMeta", "metaPanel"] /* V5 Phase 5: Meta tab (Pixel + CAPI + custom code). */
+};
+/* In tabs par topbar wala global Save button nazar aata hai. */
+const SAVEABLE_TABS = ["settings", "homepage", "appearance", "style", "content", "sections", "meta"]; /* V5 Phase 5: Meta tab bhi global Save se save hota hai. */
+Object.entries(TAB_VIEWS).forEach(([view, [tabId]]) => {
+  document.getElementById(tabId).onclick = () => switchTab(view);
+});
+function switchTab(view){
+  CURRENT_TAB = view;
+  Object.entries(TAB_VIEWS).forEach(([key, [tabId, panelId]]) => {
+    document.getElementById(tabId).classList.toggle("active", key === view);
+    document.getElementById(panelId).classList.toggle("hidden", key !== view);
+  });
+  $("#globalSaveBtn").classList.toggle("hidden", !SAVEABLE_TABS.includes(view));
+  /* V4 Phase 2: tab khulte hi active theme ke controls dobara lagayein. */
+  applyThemeVisibility();
+}
